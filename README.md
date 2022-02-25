@@ -20,15 +20,15 @@ We split our timeline into 2 main goals. First, we want to understand existing m
 - Read existing literature
 - Process dataset
 - Run 2 models (MODIT, CodeT5)  
--- https://github.com/modit-team/MODIT
--- https://github.com/salesforce/CodeT5 
+    - https://github.com/modit-team/MODIT
+    - https://github.com/salesforce/CodeT5 
 
 ### Milestone 2:
 - Design knowledge graph
 - Experiment on best representations, and other hyperparameters to finetune a model.
 
 ## Relevant Papers
-Learn to represent program as graph https://arxiv.org/pdf/1711.00740.pdf 
-Global relational models of source code https://openreview.net/pdf?id=B1lnbRNtwr 
-PLUR: A Unifying, Graph-Based View of Program Learning, Understanding, and Repair https://openreview.net/pdf?id=GEm4o9A6Jfb 
-MODIT https://arxiv.org/pdf/2108.06645.pdf 
+- Learn to represent program as graph https://arxiv.org/pdf/1711.00740.pdf 
+- Global relational models of source code https://openreview.net/pdf?id=B1lnbRNtwr 
+- PLUR: A Unifying, Graph-Based View of Program Learning, Understanding, and Repair https://openreview.net/pdf?id=GEm4o9A6Jfb 
+- MODIT https://arxiv.org/pdf/2108.06645.pdf 
