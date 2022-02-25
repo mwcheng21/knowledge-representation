@@ -1,5 +1,11 @@
 # Literature Review
 
+# Table of Contents
+1. [Learning to Represent Programs with Graphs](#learning-to-represent-programs-with-graphs)
+2. [Global Relational Models of Source Code](#global-relational-models-of-source-code)
+3. [PLUR: A Unifying, Graph-Based View of Program Learning, Understanding, and Repair](#plur)
+4. [On Multi-Modal Learning of Editing Source Code](#modit)
+
 ## Learning to Represent Programs with Graphs
 https://arxiv.org/pdf/1711.00740.pdf
 
@@ -16,7 +22,7 @@ https://arxiv.org/pdf/1711.00740.pdf
 **constraints:** statically typed languages, C#
 
 ### Summary
-The important part for us is the graph representation (see sec 4. from the paper). They use a "program graph" with syntax, data-flow, and type information (see below from the paper).
+This is the most important paper for us, I think we can start by using this representation and combining with guidance. The important part for us is the graph representation (see sec 4. from the paper). They use a "program graph" with syntax, data-flow, and type information (see below from the paper).
 ![Program Representation](/img/ggnn.png "Program Representation")
 
 They get the syntatic information from AST and combine it sematic information using the data and control flow. They also use 10 types of edges listed below:
@@ -42,6 +48,14 @@ wip
 ### Summary
 wip
 
+
+
+
+
+## PLUR
+
+
+## MODIT
 
 
 
