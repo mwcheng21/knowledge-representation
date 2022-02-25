@@ -45,13 +45,30 @@ Output: sequence
 https://openreview.net/pdf?id=B1lnbRNtwr
 
 ### Overview 
-wip
+Attempting to bridge the gap between global, unstructured and local, structured models for program representation.  
+### Overview 
+**model architecture:** (2 models) - Graph Sandwiches, Graph Relational Embedding Attention Transformers(Great)  
+**data:** 150k ETH Py150 dataset  
+**evaluation on tasks:**  
+- VarMissuse (from above paper)    
+    - localization accuracy  
+    - repair accuracy  
+
+**results:**  
+- Raise VarMisuse bug localization by 30%  
+- Sandwich 82.5% on Class Accuracy < 250  
+- GREAT 76.4% on Loc & Rep Accuracy < 250
 
 ### Summary
-wip
+This paper uses the same graph input as above (Allamanis) but with edges between control-flow statements and function calls. They also consider a "leaves-only" graph, where edges for control/data flow are moved to the furthest leaf nodes that represent a given token. This allows the AST to be removed completely. We can consider a "full" graph vs "leaves-only" graph (see paper citation for abalation study on effectiveness of this).  
 
-
-
+The other important part for us are the 2 models (sandwich and GREAT) which give ways for local information to be known in a global model, and global to be know in local model. We can do this by adding RNN/Transformer to GGNN, or creating a transformer with graph embedding as input.  
+- Sandwich Models:   
+    - "small" sandwiches:  
+        - GGNN architecture and add a single RNN or Transformer  
+    - "large" sandwiches:  
+        - Wraps every message-passing block (see GGNN in paper or above) with a 128-dimensional (bi-directional) RNN/Transformer layer  
+- GREAT: Uses the same architectural variations as the Transformer family (from the original transformer paper)  
 
 
 ## PLUR
