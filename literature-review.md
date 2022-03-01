@@ -75,10 +75,30 @@ The other important part for us are the 2 models (sandwich and GREAT) which give
 
 
 ## MODIT
+https://arxiv.org/pdf/2108.06645.pdf
+
+### Overview 
+**model architecture:** finetuned CodeBERT, GraphCodeBERT, CodeGPT. Train from scrath LSTM, transformer, CODIT
+**data:** 2.9m LoC, 29 big projects  
+**evaluation on tasks:**  
+- B2Fs
+- B2Fm
+
+**results:**  
+- MODIT accives 29.99% B2Fs accuracy
+- multi modality improves performance
+
+### Summary
+Modality: (noun) a particular mode in which something exists or is experienced or expressed.  
 
 
+This paper looks at the use of 3 modalities for learning to edit source code using a multi-modal NMT-based
+tool. These modalities are information about edit location, edit context, and nl commit message:    
+- Modality 1: Code to be edited  
+- Modality 2: Guidance  
+- Modality 3: Context  
 
-
+Uses GumTree to extract sequence of tree edit locations, and identify from AST the subtree of that edit. It then uses a multi-layer encoder-decoder based model consisting of a Transformer-based encoder and a Transformer-based decoder.
 
 
 
