@@ -21,7 +21,7 @@ xs2413, jed2205, mwc2147
 Initial milestones, will be changed as we understand our project and project scope more.
 
 - [X] [Write proposal](proposal.md)
-- [ ] [Read existing literature](literature-review.md)
+- [ ] [Read existing literature](literature-review.md) [google doc](https://docs.google.com/document/d/1s_e9VpnIOLiNnm1THlntOEr0alLpCtnSd7c3iB3WYAI/edit)
 - [ ] Process dataset
 - [ ] Run 2 models (MODIT, CodeT5)  
     - https://github.com/modit-team/MODIT
