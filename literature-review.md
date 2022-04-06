@@ -1,10 +1,25 @@
 # Literature Review
 
 # Table of Contents
-1. [Learning to Represent Programs with Graphs](#learning-to-represent-programs-with-graphs)
-2. [Global Relational Models of Source Code](#global-relational-models-of-source-code)
-3. [PLUR: A Unifying, Graph-Based View of Program Learning, Understanding, and Repair](#plur)
-4. [On Multi-Modal Learning of Editing Source Code](#modit)
+- [Literature Review](#literature-review)
+- [Table of Contents](#table-of-contents)
+  - [Learning to Represent Programs with Graphs](#learning-to-represent-programs-with-graphs)
+    - [Overview](#overview)
+    - [Summary](#summary)
+    - [Architecture](#architecture)
+  - [Global Relational Models of Source Code](#global-relational-models-of-source-code)
+    - [Overview](#overview-1)
+    - [Overview](#overview-2)
+    - [Summary](#summary-1)
+  - [PLUR](#plur)
+    - [Overview](#overview-3)
+    - [Input and Output](#input-and-output)
+    - [Model](#model)
+    - [Pre-train Tasks (16 of them from different well-known paper)](#pre-train-tasks-16-of-them-from-different-well-known-paper)
+    - [Summary](#summary-2)
+  - [MODIT](#modit)
+    - [Overview](#overview-4)
+    - [Summary](#summary-3)
 
 ## Learning to Represent Programs with Graphs
 https://arxiv.org/pdf/1711.00740.pdf
@@ -72,6 +87,37 @@ The other important part for us are the 2 models (sandwich and GREAT) which give
 
 
 ## PLUR
+https://openreview.net/forum?id=GEm4o9A6Jfb
+
+###  Overview 
+This paper proposed a unifying <strong>framework</strong> to generalized input and output and incorporate 16 well-known code training task into the framework such that the output can be used for many downstream tasks.
+PLUR's model is encoder-decoder, where encoder is based on Transformer (however, they actually tried both vanilla Transformer and GGNN) and decoder is based on GraphToCoPo. Hence, the output will follow what GraphToCoPo suppose to provide: Token(can used for code classification), Copy(copy words from the sources code, can used for code summarization), Pointers(used to link the NL to code,  can used for code debugging)
+
+### Input and Output
+* Input: Graph with nodes and edges
+  * Nodes:
+    * Label: token value, such as name of variables
+    * Type: Not ast node type, more abstract.
+    * Position: a integer represent the ordering
+  * Directed Edges:
+    * source 
+    * target
+    * type: to represent the relationship between nodes
+* Output:
+  *  Token: a script to describe the tasks output in term of tokens
+  *  Copy: is a mechanism to copy label from the input into the output (e.g. code summarization)
+  *  Pointer: a linkage from above token to the input code
+
+### Model
+* Encoder: Transformers
+* Decoder: Graph2ToCoPo
+
+### Pre-train Tasks (16 of them from different well-known paper)
+<img src='./img/plur.png' width='95%'>
+
+### Summary
+Different training tasks proposed by different papers eventually require different input. This paper want to make uses of these training tasks by using PLUR unifying input and then approximate the structure of data representation and encoding from the original paper(to find why those input work for those task) and then trying to make in work for the PLUR input and PLUR encoder by extracting the the task-required input from PLUR input.
+
 
 
 ## MODIT
