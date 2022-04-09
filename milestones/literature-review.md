@@ -40,7 +40,7 @@ https://arxiv.org/pdf/1711.00740.pdf
 
 ### Summary
 This is the most important paper for us, I think we can start by using this representation and combining with guidance. The important part for us is the graph representation (see sec 4. from the paper). They use a "program graph" with syntax, data-flow, and type information (see below from the paper).
-![Program Representation](/img/ggnn.png "Program Representation")
+![Program Representation](img/ggnn.png "Program Representation")
 
 They get the syntatic information from AST and combine it sematic information using the data and control flow. They also use 10 types of edges listed below:  
 Child/NextToken  
