@@ -8,8 +8,9 @@ from nltk.translate.bleu_score import corpus_bleu
 
 
 class Model():
-    def __init__(self, pretrained_tokenizer_path=None, pretrained_model_path=None):
+    def __init__(self, model_name, pretrained_tokenizer_path=None, pretrained_model_path=None):
         '''Init function'''
+        self.model_name = model_name
         #init pretrained model and tokenizer
         if pretrained_model_path==None:
             self.tokenizer = PLBartTokenizer.from_pretrained("uclanlp/plbart-base")
@@ -34,8 +35,8 @@ class Model():
         #TODO: append tokenized examples, summary, and context (hstack or something????)
 
 
-    def train(self, save_file):
-        '''Finetune model using transformers Trainer class. Save final model in <save_file>'''
+    def train(self):
+        '''Finetune model using transformers Trainer class. Save final model in /models/model_name'''
         #initialize the transformers trainer
         training_args = TrainingArguments(output_dir="test_trainer", evaluation_strategy="epoch")
         trainer = Trainer(
@@ -46,15 +47,11 @@ class Model():
             compute_metrics=self.compute_metrics,
         )
 
-
-        #train it #TODO: we can also write fine tuning by hand using pytorch
         trainer.train()
 
-        self.model.save_pretrained(save_file+"_finetuned.pt")
+        self.model.save_pretrained("model/" + self.model_name + "_finetuned.pt")
         #TODO: Do we need to train tokenizer?
-        self.tokenizer.save_pretrained(save_file+"_tokenizer_finetuned.pt")
-
-        return None
+        self.tokenizer.save_pretrained("model/" + self.model_name +"_tokenizer_finetuned.pt")
 
     #TODO: do we evaluate bleu_1, 2, 3 and 4? and rouge_L and CIDEr?
     def evaluate(self):
@@ -71,8 +68,8 @@ class Model():
 
     def run(self):
         '''Run finetuning'''
-        model.load_datasets()
-        model.train("basic_AST")
+        model.load_datasets("basic_ast_small")
+        model.train()
         bleuScore = model.evaluate()
         print("Bleu Score: ", bleuScore)
 
