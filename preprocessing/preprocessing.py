@@ -176,7 +176,7 @@ def encode(sample: str, type = 'fullGraph') -> str:
 
 def readFile(filePath: str, outFilePath: str) -> Tuple[List[str], TextIOWrapper]:
     samples = open(filePath, 'r').readlines()
-    outFile = open(outFilePath, 'a+')
+    outFile = open(outFilePath, 'w+')
     return samples, outFile
 
 
@@ -193,7 +193,7 @@ def preprocess(filePath: str, outFilePath: str, type: str):
 
 def main():
     input_file = os.path.join(os.path.dirname(os.getcwd()), 'data/medium/train/data.buggy_only')
-    os.makedirs( os.path.join(os.path.dirname(os.getcwd()), 'encoded-data/medium/train'))
+    os.makedirs( os.path.join(os.path.dirname(os.getcwd()), 'encoded-data/medium/train'), exist_ok=True)
     out_file = os.path.join(os.path.dirname(os.getcwd()), 'encoded-data/medium/train/data.buggy_only')
     preprocess(input_file, out_file, 'fullGraph')
 
