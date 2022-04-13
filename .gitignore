@@ -4,6 +4,7 @@
 *.cfg
 
 /data/
+/encoded-data/
 /preprocessing/venv/
 /preprocessing/vendor/
 /preprocessing/build/

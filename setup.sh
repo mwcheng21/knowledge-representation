@@ -34,8 +34,8 @@ function download_from_link() {
         echo "$FILE exists, skipping download"
     else 
         curl "${link}" --output $FILE;
+        unzip ${FILE} && rm ${FILE};
     fi
-    unzip ${FILE} && rm ${FILE};
     cd ..;
 }
 
@@ -51,7 +51,20 @@ function download_data() {
     download_from_link $addr "data" $file;
 }
 
-pip install -r requirements.txt;
+function download_language() {
+    # TODO Config Support Languege Pack
+    cd preprocessing;
+
+    sh language-download.sh;
+
+    cd ..;
+
+}
+
+python3 -m pip install -r requirements.txt;
 
 download_data;
+
+download_language;
+
 ## download_models;\

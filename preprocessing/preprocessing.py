@@ -44,7 +44,7 @@ class Traveser:
         self.id_map = {}
         self.syntax_node_id = 0
         self.syntax_map = {}
-        self.sep = '<S>'
+        self.sep = ' <S> '
 
 
 
@@ -193,7 +193,8 @@ def preprocess(filePath: str, outFilePath: str, type: str):
 
 def main():
     input_file = os.path.join(os.path.dirname(os.getcwd()), 'data/medium/train/data.buggy_only')
-    out_file = './test1.txt'
+    os.makedirs( os.path.join(os.path.dirname(os.getcwd()), 'encoded-data/medium/train'))
+    out_file = os.path.join(os.path.dirname(os.getcwd()), 'encoded-data/medium/train/data.buggy_only')
     preprocess(input_file, out_file, 'fullGraph')
 
 main()
