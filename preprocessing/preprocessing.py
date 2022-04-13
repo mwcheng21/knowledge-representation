@@ -1,4 +1,6 @@
-from re import S
+from io import TextIOWrapper
+import os
+from typing import List, Tuple
 from tree_sitter import Language, Parser, Tree
 from enum import Enum
 
@@ -34,12 +36,16 @@ class Traveser:
         self.language = Language(language_path, language)
         self.parser = Parser(self.language)
         self.parser.set_language(self.language)
-        self.tree: Tree = self.parser.parse(bytes(code, 'utf8'))
+        self.tree = self.parser.parse(bytes(code, 'utf8'))
         self.order = 0
         self.nodes = []
         self.edges = []
         self.control_flow_nodes = []
         self.id_map = {}
+        self.syntax_node_id = 0
+        self.syntax_map = {}
+        self.sep = '<S>'
+
 
 
     def setId(self, node, id):
@@ -55,19 +61,25 @@ class Traveser:
     def pushEdge(self, src: int, dst: int, EdgeType):
         self.edges.append('[%s %s %s]' % (src, dst, EdgeType))
 
-
     
     """
     Handling each node
     """
     def visit(self, node):
         if node.child_count == 0:
-            u = '(%s "%s" %s)' % (IS_LEAF, node.text.decode('utf8'), self.order)
+            u = '%s %s %s' % (IS_LEAF, node.text.decode('utf8'), self.order)
             self.nodes.append(u)
             self.control_flow_nodes.append(u)
             self.id_map[u] = self.order # For later connecting CFG edge
         else:
-            u = '(%s %s %s)' % (NOT_LEFT, node.type, self.order)
+            if node.type in self.syntax_map: 
+                nodeType = self.syntax_map[node.type]
+            else:
+                nodeType = self.syntax_node_id
+                self.syntax_map[node.type] = nodeType
+                self.syntax_node_id += 1
+
+            u = '%s %s %s' % (NOT_LEFT, nodeType, self.order)
             self.nodes.append(u)
 
         # Insert the ID for later queries
@@ -76,8 +88,8 @@ class Traveser:
         # AST edge
         if self.order != 0:
             parent_id = self.getId(node.parent)
-            self.pushEdge(parent_id, self.order, EdgeType.AST_Forward.name)
-            self.pushEdge(self.order, parent_id, EdgeType.AST_Revert)  
+            self.pushEdge(parent_id, self.order, EdgeType.AST_Forward.value)
+            self.pushEdge(self.order, parent_id, EdgeType.AST_Revert.value)  
         
         self.order += 1
         
@@ -112,20 +124,77 @@ class Traveser:
             prev = leaf - 1
             u = self.control_flow_nodes[prev]
             v = self.control_flow_nodes[leaf]
-            self.pushEdge(self.id_map[u], self.id_map[v], EdgeType.CFG_Forward.name)
-            self.pushEdge(self.id_map[v], self.id_map[u], EdgeType.CFG_Revert.name)
+            self.pushEdge(self.id_map[u], self.id_map[v], EdgeType.CFG_Forward.value)
+            self.pushEdge(self.id_map[v], self.id_map[u], EdgeType.CFG_Revert.value)
+
+    def leaveOnly(self): 
+        pass
+    
+
+    def fullGraph(self) -> Tuple[str, str]:
+        nodes = self.sep.join(self.nodes)
+        edges = self.sep.join(self.edges)
+        return nodes, edges
+
+
+    def astEdgeOnly(self):
+        pass
+
+
+    def cfgEdgeOnly(self):
+        pass
+
+
+    def dfgEdgeOnly(self):
+        pass
+
+    
+    def encode(self, type: str):
+        NODE_START = '<V>'
+        EDGE_START = '<E>'
+    
+        if type == 'fullGraph':
+            nodes, edges = self.fullGraph()            
+        else:
+            nodes, edges = self.fullGraph()  
+
+        return '%s %s %s %s\n' % (NODE_START, nodes, EDGE_START, edges)
+
+
 
 
 
 code = open("test.java", "r").read()
 
- 
-def main():
-    visitor = Traveser('java', code)
+
+def encode(sample: str, type = 'fullGraph') -> str:
+    visitor = Traveser('java', sample)
     visitor.travesal()
-    print(visitor.nodes)
-    print(visitor.control_flow_nodes)
-    print(visitor.edges)
+    return visitor.encode(type)
+   
+
+
+def readFile(filePath: str, outFilePath: str) -> Tuple[List[str], TextIOWrapper]:
+    samples = open(filePath, 'r').readlines()
+    outFile = open(outFilePath, 'a+')
+    return samples, outFile
+
+
+def preprocess(filePath: str, outFilePath: str, type: str):
+    assert os.path.exists(filePath)
+    assert os.path.isfile(filePath)
+
+    samples, outFile = readFile(filePath, outFilePath)
+
+    for sample in samples:
+        encoding = encode(sample, type)
+        outFile.write(encoding)
+
+
+def main():
+    input_file = os.path.join(os.path.dirname(os.getcwd()), 'data/medium/train/data.buggy_only')
+    out_file = './test1.txt'
+    preprocess(input_file, out_file, 'fullGraph')
 
 main()
 

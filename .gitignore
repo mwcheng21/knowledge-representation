@@ -1,6 +1,7 @@
 .env
-.pyc
-.log
+*.pyc
+*.log
+*.cfg
 
 /data/
 /preprocessing/venv/

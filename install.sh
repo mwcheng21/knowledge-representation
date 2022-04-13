@@ -51,7 +51,7 @@ function download_data() {
     download_from_link $addr "data" $file;
 }
 
-# sudo pip install -r requirements.txt;
+pip install -r requirements.txt;
 
 download_data;
 ## download_models;\
