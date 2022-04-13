@@ -1,3 +1,8 @@
 .env
 .pyc
 .log
+
+/data/
+/preprocessing/venv/
+/preprocessing/vendor/
+/preprocessing/build/
