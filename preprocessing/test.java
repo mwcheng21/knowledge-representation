@@ -8,6 +8,7 @@ enum Material {
   // ^ constant
 }
 
+
 class Person {
   //   ^ type
 
@@ -34,3 +35,11 @@ class Person {
     //            ^ constant
   }
 }
+
+Person a = new Person("Hello");
+Person b;
+b = a;
+
+int c = 10;
+int d = 8;
+d = d;

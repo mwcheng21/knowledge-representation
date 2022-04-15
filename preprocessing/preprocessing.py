@@ -21,6 +21,7 @@ Language.build_library(
 IS_LEAF = 1
 NOT_LEFT = 0
 
+
 class EdgeType(Enum):
     CFG_Forward    = 1
     CFG_Revert     = 2
@@ -28,6 +29,36 @@ class EdgeType(Enum):
     AST_Revert     = 4 
     LAST_READ      = 5
     LAST_WRITE     = 6 
+
+
+WRITE_CATEGORY = [
+    'enum_declaration',
+    'enum_constant',
+    'class_declaration',
+    'constructor_declaration',
+    'method_declaration',
+    'field_declaration',
+    'interface_declaration',
+    'record_declaration',
+    'annotation_type_declaration',
+]
+
+ARTBITRARY = [
+    'assignment_expression',
+    'variable_declarator',
+    'local_variable_declaration',
+    'constant_declaration',
+    'declaration',
+    # 'field_access'
+]
+
+READ_CATEGORY = [
+    'formal_parameter',
+    'binary_expression',
+    'instanceof_expression',
+    'spread_parameter',
+    'method_invocation'
+]
 
     
 
@@ -66,6 +97,9 @@ class Traveser:
     Handling each node
     """
     def visit(self, node):
+        if node.type == 'assignment_expression':
+            print(node.children, node.text)
+
         if node.child_count == 0:
             u = '%s %s %s' % (IS_LEAF, node.text.decode('utf8'), self.order)
             self.nodes.append(u)
@@ -81,10 +115,10 @@ class Traveser:
 
             u = '%s %s %s' % (NOT_LEFT, nodeType, self.order)
             self.nodes.append(u)
-
+           
         # Insert the ID for later queries
         self.setId(node, self.order)
-
+       
         # AST edge
         if self.order != 0:
             parent_id = self.getId(node.parent)
@@ -119,6 +153,7 @@ class Traveser:
                 if cursor.goto_next_sibling():
                     find_next_rhs = False
 
+
         # Handle the CFG edge in the end
         for leaf in range(1, len(self.control_flow_nodes)):
             prev = leaf - 1
@@ -126,6 +161,7 @@ class Traveser:
             v = self.control_flow_nodes[leaf]
             self.pushEdge(self.id_map[u], self.id_map[v], EdgeType.CFG_Forward.value)
             self.pushEdge(self.id_map[v], self.id_map[u], EdgeType.CFG_Revert.value)
+            
 
     def leaveOnly(self): 
         pass
@@ -164,9 +200,6 @@ class Traveser:
 
 
 
-code = open("test.java", "r").read()
-
-
 def encode(sample: str, type = 'fullGraph') -> str:
     visitor = Traveser('java', sample)
     visitor.travesal()
@@ -191,12 +224,12 @@ def preprocess(filePath: str, outFilePath: str, type: str):
         outFile.write(encoding)
 
 
-def main():
+def __main__():
     input_file = os.path.join(os.path.dirname(os.getcwd()), 'data/medium/train/data.buggy_only')
     os.makedirs( os.path.join(os.path.dirname(os.getcwd()), 'encoded-data/medium/train'), exist_ok=True)
     out_file = os.path.join(os.path.dirname(os.getcwd()), 'encoded-data/medium/train/data.buggy_only')
     preprocess(input_file, out_file, 'fullGraph')
 
-main()
+
 
 

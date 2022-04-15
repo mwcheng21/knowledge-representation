@@ -3,6 +3,8 @@
 *.log
 *.cfg
 
+.vscode
+
 /data/
 /encoded-data/
 /preprocessing/venv/
