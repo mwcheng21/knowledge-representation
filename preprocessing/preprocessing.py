@@ -1,7 +1,7 @@
 from io import TextIOWrapper
 import os
-from typing import List, Tuple
-from tree_sitter import Language, Parser, Tree
+from typing import Dict, List, Tuple
+from tree_sitter import Language, Parser
 from enum import Enum
 
 
@@ -45,11 +45,6 @@ WRITE_CATEGORY = [
 
 ARTBITRARY = [
     'assignment_expression',
-    'variable_declarator',
-    'local_variable_declaration',
-    'constant_declaration',
-    'declaration',
-    # 'field_access'
 ]
 
 READ_CATEGORY = [
@@ -57,7 +52,9 @@ READ_CATEGORY = [
     'binary_expression',
     'instanceof_expression',
     'spread_parameter',
-    'method_invocation'
+    'method_invocation',
+    'class_literal',
+    'object_creation_expression'
 ]
 
     
@@ -76,35 +73,95 @@ class Traveser:
         self.syntax_node_id = 0
         self.syntax_map = {}
         self.sep = ' <S> '
+        self.read_nodes = {}
+        self.write_nodes = {}
 
 
 
     def setId(self, node, id):
         query = '%s%s%s' % (node.start_point, node.end_point, node.type)
         self.id_map[query] = id
+        return query
 
 
-    def getId(self, node):
+    def getId(self, node) -> int:
         query = '%s%s%s' % (node.start_point, node.end_point, node.type)
-        return self.id_map[query]
+        if query in self.id_map:
+            return self.id_map[query]
+        else:
+            return -1
 
 
     def pushEdge(self, src: int, dst: int, EdgeType):
         self.edges.append('[%s %s %s]' % (src, dst, EdgeType))
 
     
+    def dataFlowEdge(self, node, type: str): 
+        assert node.type == 'identifier' or node.type == 'type_identifier'
+
+        variable = node.text.decode('utf8')
+        
+        node_id = self.getId(node)
+
+        if type == EdgeType.LAST_READ.name:
+            if variable in self.read_nodes: 
+                for dst in self.read_nodes[variable]:
+                    self.pushEdge(node_id, dst, EdgeType.LAST_READ.value)
+                self.read_nodes[variable].append(node_id)
+
+            else:
+                self.read_nodes[variable] = []
+        
+        if type == EdgeType.LAST_WRITE.name:
+            if variable in self.write_nodes:
+                for dst in self.write_nodes[variable]:
+                    self.pushEdge(node_id, dst, EdgeType.LAST_WRITE.value)
+                self.pushEdge(node_id, node_id, EdgeType.LAST_WRITE.value) # Self connected
+                self.write_nodes[variable].append(node_id)
+            else:
+                self.write_nodes[variable] = [node_id]
+                self.read_nodes[variable] = [node_id]
+
+
+        pass
+
+
+
+    def buildDataFlow(self, node): 
+        if node.parent.type in WRITE_CATEGORY:
+            self.dataFlowEdge(node, EdgeType.LAST_WRITE.name)
+        elif node.parent.type in READ_CATEGORY:
+            self.dataFlowEdge(node, EdgeType.LAST_READ.name)
+        elif node.parent.type in ARTBITRARY:
+            '''
+            If it is the first children, it is the writtern variable
+            '''
+            if self.getId(node.parent.children[0]) == self.getId(node): 
+                self.dataFlowEdge(node, EdgeType.LAST_WRITE.name)
+            else:
+                self.dataFlowEdge(node, EdgeType.LAST_READ.name)
+
+        else:
+            pass
+
+    
+
+    
     """
     Handling each node
     """
     def visit(self, node):
-        if node.type == 'assignment_expression':
-            print(node.children, node.text)
+        # Insert the ID for later queries
+        u = self.setId(node, self.order)
 
         if node.child_count == 0:
-            u = '%s %s %s' % (IS_LEAF, node.text.decode('utf8'), self.order)
+            # u = '%s %s %s' % (IS_LEAF, node.text.decode('utf8'), self.order)
             self.nodes.append(u)
             self.control_flow_nodes.append(u)
             self.id_map[u] = self.order # For later connecting CFG edge
+            if node.type == 'identifier' or node.type == 'type_identifier':
+                self.buildDataFlow(node)
+    
         else:
             if node.type in self.syntax_map: 
                 nodeType = self.syntax_map[node.type]
@@ -113,11 +170,10 @@ class Traveser:
                 self.syntax_map[node.type] = nodeType
                 self.syntax_node_id += 1
 
-            u = '%s %s %s' % (NOT_LEFT, nodeType, self.order)
+            # u = '%s %s %s' % (NOT_LEFT, nodeType, self.order)
             self.nodes.append(u)
            
-        # Insert the ID for later queries
-        self.setId(node, self.order)
+        
        
         # AST edge
         if self.order != 0:
@@ -222,14 +278,5 @@ def preprocess(filePath: str, outFilePath: str, type: str):
     for sample in samples:
         encoding = encode(sample, type)
         outFile.write(encoding)
-
-
-def __main__():
-    input_file = os.path.join(os.path.dirname(os.getcwd()), 'data/medium/train/data.buggy_only')
-    os.makedirs( os.path.join(os.path.dirname(os.getcwd()), 'encoded-data/medium/train'), exist_ok=True)
-    out_file = os.path.join(os.path.dirname(os.getcwd()), 'encoded-data/medium/train/data.buggy_only')
-    preprocess(input_file, out_file, 'fullGraph')
-
-
 
 
