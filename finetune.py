@@ -30,8 +30,8 @@ class Model():
         '''Load datasets from <save_dir> files (3 modalities)'''
         train = []
         eval = []
-        file_names  = ['data.buggy_tree', 'data.commit_msg', 'data.prev_full_tree', 'data.fixed_tree']
-        files = [open(os.path.join(save_dir, 'train/' + x)) for x in file_names]
+        file_names  = ['data.buggy_only', 'data.commit_msg', 'data.prev_full_code', 'data.fixed_only']
+        files = [open(os.path.join(save_dir, 'train/' + x), encoding="utf-8") for x in file_names]
         for lines in zip_longest(*files):
             input = ""
             for i in range(len(lines)-1):
@@ -43,7 +43,7 @@ class Model():
                 tokens["labels"] = labels["input_ids"]
             train.append(tokens)
 
-        files = [open(os.path.join(save_dir, 'eval/', x)) for x in file_names]
+        files = [open(os.path.join(save_dir, 'eval/', x), encoding="utf-8") for x in file_names]
         for lines in zip_longest(*files):
             input = ""
             for i in range(len(lines)-1):
@@ -57,10 +57,10 @@ class Model():
 
 
         #Load into a DataLoader
-        self.train_dataset = None
-        self.eval_dataset = None
-        print(train)
-        print(eval)
+        self.train_dataset = train
+        self.eval_dataset = eval
+        #print(train)
+        #print(eval)
         #TODO: append tokenized examples, summary, and context (hstack or something????)
 
 
