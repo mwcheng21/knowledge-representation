@@ -10,14 +10,16 @@ def main():
 
     # print(visitor.nodes)
     # print(visitor.control_flow_nodes)
-    print(visitor.edges)
+    n, e = visitor.dfgEdgeOnly()
+    print(n)
+    print(e)
 
 
 def main2():
     input_file = os.path.join(os.path.dirname(os.getcwd()), 'data/medium/train/data.buggy_only')
     os.makedirs( os.path.join(os.path.dirname(os.getcwd()), 'encoded-data/medium/train'), exist_ok=True)
     out_file = os.path.join(os.path.dirname(os.getcwd()), 'encoded-data/medium/train/data.buggy_only')
-    preprocess(input_file, out_file, 'fullGraph')
+    preprocess(input_file, out_file, 'cfgOnly')
 
 
 if __name__ == '__main__':
