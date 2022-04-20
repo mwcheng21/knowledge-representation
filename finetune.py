@@ -5,7 +5,8 @@ from transformers import Trainer
 import numpy as np
 from datasets import load_metric
 from nltk.translate.bleu_score import corpus_bleu
-
+import os
+from itertools import zip_longest
 
 class Model():
     def __init__(self, model_name, pretrained_tokenizer_path=None, pretrained_model_path=None):
@@ -27,11 +28,39 @@ class Model():
 
     def load_datasets(self, save_dir):
         '''Load datasets from <save_dir> files (3 modalities)'''
+        train = []
+        eval = []
+        file_names  = ['data.buggy_only', 'data.commit_msg', 'data.prev_full_code', 'data.fixed_only']
+        files = [open(os.path.join(save_dir, 'train/' + x), encoding="utf-8") for x in file_names]
+        for lines in zip_longest(*files):
+            input = ""
+            for i in range(len(lines)-1):
+                input = input + lines[i] + " <SEP> "
+            input = input[:-7]
+            tokens = self.tokenizer(input, return_tensors="pt")
+            with self.tokenizer.as_target_tokenizer():
+                labels = self.tokenizer(lines[-1], return_tensors="pt")
+                tokens["labels"] = labels["input_ids"]
+            train.append(tokens)
+
+        files = [open(os.path.join(save_dir, 'eval/', x), encoding="utf-8") for x in file_names]
+        for lines in zip_longest(*files):
+            input = ""
+            for i in range(len(lines)-1):
+                input = input + lines[i] + " <SEP> "
+            input = input[:-7]
+            tokens = self.tokenizer(input, return_tensors="pt")
+            with self.tokenizer.as_target_tokenizer():
+                labels = self.tokenizer(lines[-1], return_tensors="pt")
+                tokens["labels"] = labels["input_ids"]
+            eval.append(tokens)
+
 
         #Load into a DataLoader
-        self.train_dataset = None
-        self.eval_dataset = None
-        pass
+        self.train_dataset = train
+        self.eval_dataset = eval
+        #print(train)
+        #print(eval)
         #TODO: append tokenized examples, summary, and context (hstack or something????)
 
 
@@ -74,5 +103,6 @@ class Model():
         print("Bleu Score: ", bleuScore)
 
 if __name__ == "__main__":
-    model = Model()
+    model = Model("test")
+    #model.load_datasets("C:\\Users\\dreib\\Downloads\\krp_medium\\medium")
     model.run()
