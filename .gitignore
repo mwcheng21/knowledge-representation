@@ -6,8 +6,9 @@
 .vscode
 
 /data/
-/encoded-data/
+/encode-data/
 /preprocessing/venv/
 /preprocessing/vendor/
 /preprocessing/build/
 encoded-data*
+encode-data*

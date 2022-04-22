@@ -57,6 +57,16 @@ READ_CATEGORY = [
     'object_creation_expression'
 ]
 
+ # strip the !!
+def strip_edge(edge): 
+    edge_rest = edge[0: -3]
+    edgeType = edge[-3:][1]
+    return edge_rest + edgeType
+
+def strip_node(node): 
+    node_rest = node[3:]
+    nodeType = node[0:3][1]
+    return nodeType + node_rest
     
 
 class Traveser: 
@@ -72,7 +82,7 @@ class Traveser:
         self.id_map = {}
         self.syntax_node_id = 0
         self.syntax_map = {}
-        self.sep = ' <S> '
+        self.sep = ' <s> '
         self.read_nodes = {}
         self.write_nodes = {}
 
@@ -145,8 +155,6 @@ class Traveser:
             pass
 
     
-
-    
     """
     Handling each node
     """
@@ -179,7 +187,7 @@ class Traveser:
         if self.order != 0:
             parent_id = self.getId(node.parent)
             self.pushEdge(parent_id, self.order, EdgeType.AST_Forward.value)
-            self.pushEdge(self.order, parent_id, EdgeType.AST_Revert.value)  
+            # self.pushEdge(self.order, parent_id, EdgeType.AST_Revert.value)  
         
         self.order += 1
         
@@ -216,35 +224,32 @@ class Traveser:
             u = self.control_flow_nodes[prev]
             v = self.control_flow_nodes[leaf]
             self.pushEdge(self.id_map[u], self.id_map[v], EdgeType.CFG_Forward.value)
-            self.pushEdge(self.id_map[v], self.id_map[u], EdgeType.CFG_Revert.value)
-            
+            # self.pushEdge(self.id_map[v], self.id_map[u], EdgeType.CFG_Revert.value)
+        
 
     def leaveOnly(self): 
         leaves = filter(lambda node: ('!%s!' % IS_LEAF) in node, self.nodes)
-        # leaves = map(lambda node: node.replace(('!%s!' % IS_LEAF), '%s' % IS_LEAF), leaves)
-        nodes = self.sep.join(list(leaves))
+        nodes = list(leaves)
 
         leavesEdges = filter(lambda edge: ('!%s!' % EdgeType.AST_Forward.value) not in edge \
                                         and ('!%s!' % EdgeType.AST_Revert.value) not in edge, self.edges)
-        edges = self.sep.join(list(leavesEdges))
+        edges = list(leavesEdges)
 
         return nodes, edges
         
     
 
     def fullGraph(self) -> Tuple[str, str]:
-        nodes = self.sep.join(self.nodes)
-        edges = self.sep.join(self.edges)
-        return nodes, edges
+        return self.nodes, self.edges
 
 
     def astEdgeOnly(self):
-        nodes = self.sep.join(self.nodes)
+        nodes = self.nodes
 
         astEdge = filter(lambda edge: ('!%s!' % EdgeType.AST_Forward.value) in edge \
                                         or ('!%s!' % EdgeType.AST_Revert.value) in edge, self.edges)
 
-        edges = self.sep.join(list(astEdge))
+        edges = list(astEdge)
 
         return nodes, edges
         
@@ -254,9 +259,9 @@ class Traveser:
         nodes, edges = self.leaveOnly()
 
         cfgEdges = filter(lambda edge: ('!%s!' % EdgeType.LAST_READ.value) not in edge \
-                                        and ('!%s!' % EdgeType.LAST_WRITE.value) not in edge, edges.split(self.sep))
+                                        and ('!%s!' % EdgeType.LAST_WRITE.value) not in edge, edges)
         
-        edges = self.sep.join(list(cfgEdges))
+        edges = list(cfgEdges)
         return nodes, edges
 
 
@@ -264,19 +269,19 @@ class Traveser:
         nodes, edges = self.leaveOnly()
 
         dfgEdges = filter(lambda edge: ('!%s!' % EdgeType.CFG_Forward.value) not in edge \
-                                        and ('!%s!' % EdgeType.CFG_Revert.value) not in edge, edges.split(self.sep))
+                                        and ('!%s!' % EdgeType.CFG_Revert.value) not in edge, edges)
         
-        edges = self.sep.join(list(dfgEdges))
+        edges = list(dfgEdges)
         return nodes, edges
 
     
-    def encode(self, type: str):
+    def encode(self, type: str = 'leaveOnly'):
         NODE_START = '<V>'
         EDGE_START = '<E>'
     
         if type == 'fullGraph':
             nodes, edges = self.fullGraph()            
-        elif type == 'leavesOnly':
+        elif type == 'leaveOnly':
             nodes, edges = self.leaveOnly()        
         elif type == 'astOnly':
             nodes, edges = self.astEdgeOnly()      
@@ -287,10 +292,11 @@ class Traveser:
         else:
             raise KeyError("No found type")
 
+
+        nodes = self.sep.join(list(map(strip_node, nodes)))
+        edges = self.sep.join(list(map(strip_edge, edges)))
+
         return '%s %s %s %s\n' % (NODE_START, nodes, EDGE_START, edges)
-
-
-
 
 
 def encode(sample: str, type = 'fullGraph') -> str:
