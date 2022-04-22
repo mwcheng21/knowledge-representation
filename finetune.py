@@ -1,3 +1,4 @@
+from cgi import test
 from transformers import TrainingArguments
 from transformers import PLBartForConditionalGeneration, PLBartTokenizer
 from transformers import PLBartModel, PLBartConfig
@@ -33,15 +34,18 @@ class Model():
 
         train_text, train_labels = self.combine_modalities(file_names, save_dir, "train/")
         eval_text, eval_labels = self.combine_modalities(file_names, save_dir, "eval/")
-        
+        test_text, test_labels = self.combine_modalities(file_names, save_dir, "test/")
+
         padding = True
         truncation = True
 
         train_tokens = self.tokenizer(train_text, padding=padding, truncation=truncation, return_tensors="pt")
         eval_tokens = self.tokenizer(eval_text, padding=padding, truncation=truncation, return_tensors="pt")
+        test_tokens = self.tokenizer(eval_text, padding=padding, truncation=truncation, return_tensors="pt")
 
         self.train_dataset = CodeDataset(train_tokens, train_labels)
         self.eval_dataset = CodeDataset(eval_tokens, eval_labels)
+        self.test_dataset = CodeDataset(test_text, test_labels)
 
     def combine_modalities(self, file_names, save_dir, sub_dir):
         data = []
@@ -77,8 +81,8 @@ class Model():
     #TODO: do we evaluate bleu_1, 2, 3 and 4? and rouge_L and CIDEr?
     def evaluate(self):
         '''Evaluate model on test set'''
-        preds = self.model.predict(self.eval_dataset)
-        bleuScore = corpus_bleu(self.eval_dataset.targets, preds)
+        preds = self.model.predict(self.test_dataset)
+        bleuScore = corpus_bleu(self.test_dataset.targets, preds)
         return bleuScore
 
     def compute_metrics(self, eval_pred):
@@ -87,14 +91,17 @@ class Model():
         predictions = np.argmax(logits, axis=-1)
         return self.metric.compute(predictions=predictions, references=labels)
 
-    def run(self):
+    def run(self, folder_name):
         '''Run finetuning'''
-        model.load_datasets("basic_ast_small")
+        print("Loading datasets...")
+        model.load_datasets(folder_name)
+        print("Finetuning...")
         model.train()
+        print("Evaluating...")
         bleuScore = model.evaluate()
         print("Bleu Score: ", bleuScore)
 
 if __name__ == "__main__":
     model = Model("test")
     #model.load_datasets("C:\\Users\\dreib\\Downloads\\krp_medium\\medium")
-    model.run()
+    model.run("./data/medium")
