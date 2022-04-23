@@ -33,7 +33,7 @@ class Model():
         train_text, train_labels = self.combine_modalities(save_dir, "train/")
         eval_text, eval_labels = self.combine_modalities(save_dir, "eval/")
         test_text, test_labels = self.combine_modalities(save_dir, "test/")
-
+        print(eval_text[0])
         padding = True
         truncation = True
 
@@ -75,8 +75,6 @@ class Model():
         trainer.train()
 
         self.model.save_pretrained("model/" + self.model_name + "_finetuned.pt")
-        #TODO: Do we need to train tokenizer?
-        self.tokenizer.save_pretrained("model/" + self.model_name +"_tokenizer_finetuned.pt")
 
     def evaluate(self):
         '''Evaluate model on test set by accuracy'''
@@ -101,4 +99,4 @@ class Model():
 
 if __name__ == "__main__":
     model = Model("test")
-    model.run("./data/medium")
+    model.run("./data/tiny")
