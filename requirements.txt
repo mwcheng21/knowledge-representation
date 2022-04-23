@@ -1,1 +1,7 @@
 tree-sitter==0.20.0
+datasets==2.0.0
+numpy==1.21.3
+transformers==4.17.0
+torch==1.10.0
+sklearn==0.0
+sentencepiece==0.1.96

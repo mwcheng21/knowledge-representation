@@ -5,7 +5,6 @@ from transformers import PLBartModel, PLBartConfig
 from transformers import Trainer
 import numpy as np
 from datasets import load_metric
-from nltk.translate.bleu_score import corpus_bleu
 import os
 from itertools import zip_longest
 from dataset import CodeDataset
@@ -16,7 +15,7 @@ class Model():
         self.model_name = model_name
         #init pretrained model and tokenizer
         if pretrained_model_path==None:
-            self.tokenizer = PLBartTokenizer.from_pretrained("uclanlp/plbart-base")
+            self.tokenizer = PLBartTokenizer.from_pretrained("uclanlp/plbart-base", tgt_lang="java")
         else:
             self.tokenizer = PLBartTokenizer.from_pretrained(pretrained_tokenizer_path, local_files_only=True)
 
@@ -26,15 +25,14 @@ class Model():
         else:
             self.model = PLBartModel.from_pretrained(pretrained_model_path, local_files_only=True)
 
-        self.metric = load_metric("bleu")
+        self.metric = load_metric("accuracy")
 
     def load_datasets(self, save_dir):
         '''Load datasets from <save_dir> files (3 modalities)'''
-        file_names  = ['data.buggy_only', 'data.commit_msg', 'data.prev_full_code', 'data.fixed_only']
 
-        train_text, train_labels = self.combine_modalities(file_names, save_dir, "train/")
-        eval_text, eval_labels = self.combine_modalities(file_names, save_dir, "eval/")
-        test_text, test_labels = self.combine_modalities(file_names, save_dir, "test/")
+        train_text, train_labels = self.combine_modalities(save_dir, "train/")
+        eval_text, eval_labels = self.combine_modalities(save_dir, "eval/")
+        test_text, test_labels = self.combine_modalities(save_dir, "test/")
 
         padding = True
         truncation = True
@@ -47,9 +45,11 @@ class Model():
         self.eval_dataset = CodeDataset(eval_tokens, eval_labels)
         self.test_dataset = CodeDataset(test_text, test_labels)
 
-    def combine_modalities(self, file_names, save_dir, sub_dir):
+    def combine_modalities(self, save_dir, sub_dir):
+        file_names  = ['data.buggy_only', 'data.commit_msg', 'data.full_code_fullGraph', 'data.fixed_only']
+
         data = []
-        labels = []
+        labels = [] 
         files = [open(os.path.join(save_dir, sub_dir + x), encoding="utf-8") for x in file_names]
         for lines in zip_longest(*files):
             input = ""
@@ -78,12 +78,10 @@ class Model():
         #TODO: Do we need to train tokenizer?
         self.tokenizer.save_pretrained("model/" + self.model_name +"_tokenizer_finetuned.pt")
 
-    #TODO: do we evaluate bleu_1, 2, 3 and 4? and rouge_L and CIDEr?
     def evaluate(self):
-        '''Evaluate model on test set'''
-        preds = self.model.predict(self.test_dataset)
-        bleuScore = corpus_bleu(self.test_dataset.targets, preds)
-        return bleuScore
+        '''Evaluate model on test set by accuracy'''
+        preds = self.model.predict(self.test_dataset.encodings)
+        return self.metric.compute(predictions=preds, references=self.test_dataset.labels)
 
     def compute_metrics(self, eval_pred):
         '''Helper function for what metric training should use'''
@@ -103,5 +101,4 @@ class Model():
 
 if __name__ == "__main__":
     model = Model("test")
-    #model.load_datasets("C:\\Users\\dreib\\Downloads\\krp_medium\\medium")
     model.run("./data/medium")
