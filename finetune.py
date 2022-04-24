@@ -74,7 +74,7 @@ class Model():
         '''Finetune model using transformers Trainer class. Save final model in /models/model_name'''
         #initialize the transformers trainer
         # training_args = TrainingArguments(output_dir="test_trainer", evaluation_strategy="epoch")
-        trainer = Trainer(
+        self.trainer = Trainer(
             model=self.model,
             # args=training_args,
             train_dataset=self.train_dataset,
@@ -82,14 +82,13 @@ class Model():
             compute_metrics=self.compute_metrics,
         )
 
-        trainer.train()
+        self.trainer.train()
 
         self.model.save_pretrained("model/" + self.model_name + "_finetuned.pt")
 
     def evaluate(self):
         '''Evaluate model on test set by accuracy'''
-        
-        preds = self.model(self.test_dataset)
+        preds = self.trainer.predict(self.test_dataset)
         return self.metric.compute(predictions=preds, references=self.test_dataset.labels)
 
     def compute_metrics(self, eval_pred):
