@@ -21,9 +21,9 @@ class Model():
 
         #TODO: what model to use PLBartModel or PLBartForConditionalGeneration? Not sure the difference
         if pretrained_model_path==None:
-            self.model = PLBartModel.from_pretrained("uclanlp/plbart-base")
+            self.model = PLBartForConditionalGeneration.from_pretrained("uclanlp/plbart-base")
         else:
-            self.model = PLBartModel.from_pretrained(pretrained_model_path, local_files_only=True)
+            self.model = PLBartForConditionalGeneration.from_pretrained(pretrained_model_path, local_files_only=True)
 
         self.metric = load_metric("accuracy")
 
@@ -33,7 +33,7 @@ class Model():
         train_text, train_labels = self.combine_modalities(save_dir, "train/")
         eval_text, eval_labels = self.combine_modalities(save_dir, "eval/")
         test_text, test_labels = self.combine_modalities(save_dir, "test/")
-        print(eval_text[0])
+
         padding = True
         truncation = True
 
@@ -99,4 +99,4 @@ class Model():
 
 if __name__ == "__main__":
     model = Model("test")
-    model.run("./data/tiny")
+    model.run("./data/single")

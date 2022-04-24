@@ -1,8 +1,8 @@
 import os
 
 #change these
-newdir = "tiny" #name of new directory
-n = 10 #number of lines to copy
+newdir = "single" #name of new directory
+n = 2 #number of lines to copy
 
 os.system(f"mkdir ./data/{newdir}")
 
