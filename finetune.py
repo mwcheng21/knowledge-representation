@@ -1,4 +1,4 @@
-from cgi import test
+from unittest import result
 from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
 from transformers.trainer_seq2seq import Seq2SeqTrainer
 from transformers import PLBartForConditionalGeneration, PLBartTokenizer
@@ -28,7 +28,6 @@ class Model():
         else:
             self.model = PLBartForConditionalGeneration.from_pretrained(pretrained_model_path, local_files_only=True)
 
-        self.metric = load_metric("accuracy")
 
     def load_datasets(self, save_dir):
         '''Load datasets from <save_dir> files (3 modalities)'''
@@ -44,13 +43,10 @@ class Model():
 
 
     def tokenize_function(self, examples):
-        model_inputs = self.tokenizer(examples["text"], padding="max_length", truncation=True, return_tensors="pt")
+        model_inputs = self.tokenizer(examples["text"], padding="max_length", truncation=False, return_tensors="pt")
         model_inputs["labels"] = squeeze(self.tokenizer(examples["labels"], padding="max_length", return_tensors="pt").input_ids) #TODO: do I tokenize this?
         model_inputs["attention_mask"] = squeeze(model_inputs["attention_mask"])
         model_inputs["input_ids"] = squeeze(model_inputs["input_ids"])
-        
-
-
 
         return model_inputs
 
@@ -86,33 +82,48 @@ class Model():
             compute_metrics=self.compute_metrics,
         )
 
-        # self.trainer.train()
+        self.trainer.train()
 
         self.model.save_pretrained("model/" + self.model_name + "_finetuned.pt")
 
     def evaluate(self):
         '''Evaluate model on test set by accuracy'''
-        preds = self.trainer.predict(self.eval_dataset)
-        return self.metric.compute(predictions=preds, references=self.eval_dataset.labels)
+        test_pred = self.trainer.predict(self.test_dataset)
+        return self.compute_metrics(test_pred)
+
+
+    def postprocess_text(self, preds, labels):
+        preds = [pred.strip() for pred in preds]
+        labels = [[label.strip()] for label in labels]
+        return preds, labels
+
+
+    def acc_metric(self, preds, labels): 
+        accur_count = 0
+        sample_size = len(labels)
+        assert len(preds) == len(labels)
+        for i in range(len(preds)):
+            print(preds[i], labels[i])
+            accur_count += 1 if preds[i] == labels[i]  else 0
+        
+        return accur_count / sample_size * 100
+
 
     def compute_metrics(self, eval_pred):
         '''Helper function for what metric training should use'''
-        # logits, labels = eval_pred
-        # logits (2, 2, 1024, 50003)
-        
         labels = eval_pred.label_ids
         
-        predictions = np.argmax(eval_pred.predictions, axis=-1)
-        # predictions = []
-        # for sample in logits:
-        #    pred = np.argmax(sample, axis=-1)
-        #    print(pred.shape)
-        #    predictions.append(pred)
+        predictions = np.argmax(eval_pred.predictions[0], axis=-1)
+        
+        decoded_preds = self.tokenizer.batch_decode(predictions, skip_special_tokens=True)
+        decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
 
-        pred_codes = self.tokenizer.decode(predictions)
+        decoded_preds, decoded_labels = self.postprocess_text(decoded_preds, decoded_labels)
+  
+        acc = self.acc_metric(decoded_preds, decoded_labels)
 
-        # predictions = np.argmax(logits, axis=-1)
-        return self.metric.compute(predictions=pred_codes, references=labels)
+        return { 'Acc': round(acc, 4)}
+
 
     def run(self, folder_name):
         '''Run finetuning'''
