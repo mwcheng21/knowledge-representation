@@ -12,3 +12,6 @@
 /preprocessing/build/
 encoded-data*
 encode-data*
+model/
+original-data/
+test.py

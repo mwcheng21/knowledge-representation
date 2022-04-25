@@ -2,12 +2,12 @@ import os
 
 #change these
 newdir = "single" #name of new directory
-n = 2 #number of lines to copy
+n = 3 #number of lines to copy
 
-os.system(f"mkdir ./data/{newdir}")
+os.system(f"mkdir - ./data/{newdir}")
 
 for types in ["eval", "test", "train"]:
-    os.system(f"mkdir ./data/{newdir}/{types}")
+    os.system(f"mkdir -p ./data/{newdir}/{types}")
 files = ["data.buggy_only",  "data.commit_msg",  "data.fixed_only",  "data.full_code_fullGraph",  "data.full_code_leaveOnly"]
 for file in files:
     for types in ["eval", "test", "train"]:

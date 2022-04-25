@@ -1,5 +1,6 @@
 from cgi import test
-from transformers import TrainingArguments
+from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
+from transformers.trainer_seq2seq import Seq2SeqTrainer
 from transformers import PLBartForConditionalGeneration, PLBartTokenizer
 from transformers import PLBartModel, PLBartConfig
 from transformers import Trainer
@@ -43,10 +44,13 @@ class Model():
 
 
     def tokenize_function(self, examples):
-        model_inputs = self.tokenizer(examples["text"], padding="max_length", truncation=True, return_tensors="pt")
+        model_inputs = self.tokenizer(examples["text"], padding="max_length", truncation=False, return_tensors="pt")
         model_inputs["labels"] = squeeze(self.tokenizer(examples["labels"], padding="max_length", return_tensors="pt").input_ids) #TODO: do I tokenize this?
         model_inputs["attention_mask"] = squeeze(model_inputs["attention_mask"])
         model_inputs["input_ids"] = squeeze(model_inputs["input_ids"])
+        
+
+
 
         return model_inputs
 
@@ -73,29 +77,41 @@ class Model():
     def train(self):
         '''Finetune model using transformers Trainer class. Save final model in /models/model_name'''
         #initialize the transformers trainer
-        # training_args = TrainingArguments(output_dir="test_trainer", evaluation_strategy="epoch")
-        self.trainer = Trainer(
+        training_args = Seq2SeqTrainingArguments(output_dir="test_trainer", evaluation_strategy="epoch", generation_max_length=512)
+        self.trainer = Seq2SeqTrainer(
             model=self.model,
-            # args=training_args,
+            args=training_args,
             train_dataset=self.train_dataset,
             eval_dataset=self.eval_dataset,
             compute_metrics=self.compute_metrics,
         )
 
-        self.trainer.train()
+        # self.trainer.train()
 
         self.model.save_pretrained("model/" + self.model_name + "_finetuned.pt")
 
     def evaluate(self):
         '''Evaluate model on test set by accuracy'''
-        preds = self.trainer.predict(self.test_dataset)
-        return self.metric.compute(predictions=preds, references=self.test_dataset.labels)
+        preds = self.trainer.predict(self.eval_dataset)
+        return self.metric.compute(predictions=preds, references=self.eval_dataset.labels)
 
     def compute_metrics(self, eval_pred):
         '''Helper function for what metric training should use'''
-        logits, labels = eval_pred
-        predictions = np.argmax(logits, axis=-1)
-        return self.metric.compute(predictions=predictions, references=labels)
+        # logits, labels = eval_pred
+        # logits (2, 2, 1024, 50003)
+        
+        labels = eval_pred.label_ids
+        predictions = eval_pred.predictions.argmax(-1)
+        # predictions = []
+        # for sample in logits:
+        #    pred = np.argmax(sample, axis=-1)
+        #    print(pred.shape)
+        #    predictions.append(pred)
+
+        pred_codes = self.tokenizer.decode(predictions)
+
+        # predictions = np.argmax(logits, axis=-1)
+        return self.metric.compute(predictions=pred_codes, references=labels)
 
     def run(self, folder_name):
         '''Run finetuning'''
