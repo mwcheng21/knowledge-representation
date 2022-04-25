@@ -1,0 +1,10 @@
+bugfix logger problem
+Fixed bugs in PlayoutTest
+Fix msg empty issues
+Fixed some bugs
+Fixed a null pointer error in connect().  Damn yoos  agile programming at late at night at!
+bug fixed  fixed some bugs with security and daoimpl classes
+1.1  + Pipline Programm funktioniert + Paar bugfixes + Kommentare hinzugefügt - Immernoch nur eine HAL-Verbindung pro Prozessor
+Changed min API to 20  and fixed arraylist bug
+Fixed some timing issues to work with real servers
+Fix issue for connect request can not remove issue

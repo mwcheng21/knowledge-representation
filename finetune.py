@@ -44,7 +44,7 @@ class Model():
 
 
     def tokenize_function(self, examples):
-        model_inputs = self.tokenizer(examples["text"], padding="max_length", truncation=False, return_tensors="pt")
+        model_inputs = self.tokenizer(examples["text"], padding="max_length", truncation=True, return_tensors="pt")
         model_inputs["labels"] = squeeze(self.tokenizer(examples["labels"], padding="max_length", return_tensors="pt").input_ids) #TODO: do I tokenize this?
         model_inputs["attention_mask"] = squeeze(model_inputs["attention_mask"])
         model_inputs["input_ids"] = squeeze(model_inputs["input_ids"])
@@ -101,7 +101,8 @@ class Model():
         # logits (2, 2, 1024, 50003)
         
         labels = eval_pred.label_ids
-        predictions = eval_pred.predictions.argmax(-1)
+        
+        predictions = np.argmax(eval_pred.predictions, axis=-1)
         # predictions = []
         # for sample in logits:
         #    pred = np.argmax(sample, axis=-1)

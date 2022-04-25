@@ -1,0 +1,3 @@
+userStoragePreference . getLoginUserName () 
+putAll ( idx , attributes ) 
+{ e . printStackTrace () ; java.lang.System.out . println ( "Could not remove supplier from database." ) ; } 

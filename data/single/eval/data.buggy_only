@@ -1,0 +1,3 @@
+org.mycat.netty.mysql.MySQLHandshakeHandler.logger . debug ( "success info return form MySQLHandshakeHandler" ) 
+org.junit.Assert . assertFalse ( "checkRulesTest1 failed" , ( ( pl . checkRules ( new Point ( 5 , 2 ) , Board.FRIENDLY , board ) ) == true ) ) 
+org.apache.http.client.fluent.Form . form () . add ( "msg" , msg ) 

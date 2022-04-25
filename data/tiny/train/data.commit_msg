@@ -1,0 +1,10 @@
+Merge pull request #17 from jsimone/develop  fix for issue 16
+Fixed parsing problem with Fairfield County  OH
+Merge pull request #108 from alex-bezrodniy/ghprb_issue_92  Fixes #92
+Fixed bugs with checklist and creating new entries. Tweaked appearance. Added new resource images and made faces look colored in when selected.
+Navigator bug fix  minor optimization and formating
+Add NonBlockingHashSetLong and fix bug.  Add NonBlockingHashSetLong (with additional improvements to avoid auto-boxing). Fix a bug in retainAll() in NonBlockingSetInt (wasn't properly returning the 'modified' value. Added a test to verify the behavior of retainAll().
+Fixed several bugs
+Cleanup of the RegionFile and fixed a locked thread issue.
+FIX some bugs
+Fixed infinite loop and diminishing loop in infeasible problem calculation

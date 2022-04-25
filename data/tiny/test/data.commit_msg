@@ -1,0 +1,10 @@
+Fixed issue with getting user computer resoruces preference user loing name
+WyIL: Bug fix for AbstractAttributeMap.  Previously  AbstractAttributeMap was not inserting attributes at the correct index for nested attributes.  This meant that error messages were not being correctly reported.
+supplier dao test bugfix  getting id-s from table
+color bug fixed
+Gosu Core - fix reification issue with anonymous class wrt enclosing generic type
+[#31] Fixed bugs in AutoDeployment and broken it down into smaller methods. Added test folders and war-files.
+Bugfix in converting wizard data to TunnelConfig
+1. Added the brake thing in the GradingSystem.java. 2. Made some improvements on the brakeAlert in the AlertSystem.java. 3. Bug fix in MainView.java. 4. Removed update button in MainView.java.
+fixed bug - if camera capture canceled then clear url
+Bug 6358 - Fix merge parents  Change-Id: I965f1ebe2e2bcc06f9af93e613351f28778448ff Signed-off-by: Jakub Toth <jatoth@cisco.com>

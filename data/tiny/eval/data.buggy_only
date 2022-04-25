@@ -1,0 +1,10 @@
+org.mycat.netty.mysql.MySQLHandshakeHandler.logger . debug ( "success info return form MySQLHandshakeHandler" ) 
+org.junit.Assert . assertFalse ( "checkRulesTest1 failed" , ( ( pl . checkRules ( new Point ( 5 , 2 ) , Board.FRIENDLY , board ) ) == true ) ) 
+org.apache.http.client.fluent.Form . form () . add ( "msg" , msg ) 
+if ( ( ( ( ( ( ! ( launching ) ) && ( ( getControlPanel () ) != null ) ) && ( ( getSupportFrame () ) != null ) ) && ( ( missile ) != null ) ) && ( canExtractEnergy ( energyCost ) ) ) && ( isPathClear () ) ) { launching = true ; } else if ( worldObj.isRemote ) printErrorMessage ( player ) ; 
+if ( connection . isValid ( 7 ) ) { return connection ; } else { connection = java.sql.DriverManager . getConnection ( getUrl () , _username , _password ) ; return connection ; } 
+return "Pages/Brands.jsp" ; 
+data = x 
+{ controller = new com.chopin.MusicController ( this ) ; controller . setMediaPlayer ( this ) ; controller . setAnchorView ( findViewById ( R.id.song_list ) ) ; controller . setEnabled ( true ) ; controller . setPrevNextListeners ( new android.view.View.OnClickListener () { @ java.lang.Override public void onClick ( android.view.View v ) { playNext () ; } } , new android.view.View.OnClickListener () { public void onClick ( android.view.View v ) { playPrev () ; } } ) ; } 
+checkCollisions ( dt ) 
+removeConnectRequest ( request.connId ) 

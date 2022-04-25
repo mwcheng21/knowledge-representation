@@ -1,0 +1,10 @@
+userStoragePreference . getLoginUserName () 
+putAll ( idx , attributes ) 
+{ e . printStackTrace () ; java.lang.System.out . println ( "Could not remove supplier from database." ) ; } 
+{ com.example.johannes.colorpicker.Task task = new com.example.johannes.colorpicker.Task () ; java.util.List < com.example.johannes.colorpicker.Task > tasks = new java.util.ArrayList <> () ; for ( int i = 0 ; i < ( colors . size () ) ; i ++ ) { task . setOtsikko ( colors . get ( i ) . getHex () ) ; tasks . add ( task ) ; } return tasks ; } 
+if ( gw.lang.reflect.Modifier . isReified ( dfs . getModifiers () ) ) { addTypeParamDescriptor ( parameters , getTypeVarsForDFS ( dfs ) ) ; } 
+@ java.lang.SuppressWarnings ( value = "PMD" ) public void extractWarFile ( java.lang.String jarFile ) { refreshDirectory ( jarFile ) ; try { java.util.jar.JarFile jar = new java.util.jar.JarFile ( ( ( ( warDirectory ) + ( java.io.File.separator ) ) + jarFile ) ) ; java.util.Enumeration entries = jar . entries () ; while ( entries . hasMoreElements () ) { extractFile ( jar , entries ) ; } } catch ( java.io.IOException e ) { org.apache.commons.io.FileUtils . deleteQuietly ( deployDirectory ) ; nc.sumy.edu.webcontainer.deployment.ArchiveExtractor.LOG . warn ( "Cannot read/write/found file: " , e ) ; } } 
+cfg . setPort ( data . getBundle ( res . getString ( R.string.i2ptunnel_wizard_k_binding_port ) ) . getInt ( Page.SIMPLE_DATA_KEY ) ) ; 
+{ group8.com.application.Application.AlertSystem.shouldAlert = false ; group8.com.application.Application.AlertSystem.coolDown . start () ; return true ; } 
+{ super . onActivityResult ( requestCode , resultCode , data ) ; if ( ( requestCode != ( EditFragment.REQUEST_TAKE_PHOTO ) ) || ( resultCode != ( android.app.Activity.RESULT_OK ) ) ) return; com.example.jbt.omdb.EditFragment editFrag = mFragmentHelper . getEditFragmentIfExists () ; if ( editFrag != null ) editFrag . onCameraActivityResult () ; } 
+org.opendaylight.restconf.restful.utils.TransactionUtil . ensureParentsByMerge ( path , schemaContext , writeTransaction ) 

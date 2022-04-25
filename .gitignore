@@ -5,7 +5,8 @@
 
 .vscode
 
-/data/
+/data/medium
+
 /encode-data/
 /preprocessing/venv/
 /preprocessing/vendor/

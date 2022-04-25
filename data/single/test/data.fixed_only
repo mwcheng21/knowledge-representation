@@ -1,0 +1,3 @@
+userComputeResourcePreference . getLoginUserName () 
+putAll ( index , attributes ) 
+{ java.lang.System.out . println ( "Could not remove supplier from database." ) ; } 
