@@ -1,11 +1,8 @@
 from unittest import result
 from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
 from transformers.trainer_seq2seq import Seq2SeqTrainer
-from transformers import PLBartForConditionalGeneration, PLBartTokenizer
-from transformers import PLBartModel, PLBartConfig
-from transformers import Trainer
+from transformers import PLBartForConditionalGeneration, PLBartModel, PLBartTokenizer, PLBartConfig
 import numpy as np
-from datasets import load_metric
 import os
 from itertools import zip_longest
 from datasets import Dataset, DatasetDict
@@ -21,25 +18,36 @@ class Model():
             self.tokenizer = PLBartTokenizer.from_pretrained("uclanlp/plbart-base", tgt_lang="java")
         else:
             self.tokenizer = PLBartTokenizer.from_pretrained(pretrained_tokenizer_path, local_files_only=True)
-
+        
         #TODO: what model to use PLBartModel or PLBartForConditionalGeneration? Not sure the difference
         if pretrained_model_path==None:
-            self.model = PLBartForConditionalGeneration.from_pretrained("uclanlp/plbart-base")
+            # configuration = PLBartConfig(**default_config)
+            # print(configuration)
+            # self.model = PLBartForConditionalGeneration(configuration)
+            self.model = PLBartForConditionalGeneration.from_pretrained('uclanlp/plbart-base')
         else:
             self.model = PLBartForConditionalGeneration.from_pretrained(pretrained_model_path, local_files_only=True)
+    
+        
 
 
     def load_datasets(self, save_dir):
         '''Load datasets from <save_dir> files (3 modalities)'''
         train, eval, test  = self.combine_modalities(save_dir)
 
-        self.train_dataset = train.map(self.tokenize_function, remove_columns=["text"])
-        self.eval_dataset = eval.map(self.tokenize_function, remove_columns=["text"])
-        self.test_dataset = test.map(self.tokenize_function, remove_columns=["text"])
+        self.train_dataset = train.map(self.tokenize_function, remove_columns=["text"])\
+                                  .filter(lambda example: len(example["input_ids"]) <= 1024)
+                                  
+        self.eval_dataset = eval.map(self.tokenize_function, remove_columns=["text"])\
+                                .filter(lambda example: len(example["input_ids"]) <= 1024)
+
+        self.test_dataset = test.map(self.tokenize_function, remove_columns=["text"])\
+                                .filter(lambda example: len(example["input_ids"]) <= 1024)
 
         self.train_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
         self.eval_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
         self.test_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
+
 
 
     def tokenize_function(self, examples):
@@ -50,8 +58,9 @@ class Model():
 
         return model_inputs
 
+
     def combine_modalities(self, save_dir):
-        file_names  = ['data.buggy_only', 'data.commit_msg', 'data.full_code_fullGraph', 'data.fixed_only']
+        file_names  = ['data.buggy_only', 'data.commit_msg', 'data.full_code_leaveOnly', 'data.fixed_only']
         out = {}
         for mode in ["train", "test", "eval"]:
             data = []
@@ -73,7 +82,14 @@ class Model():
     def train(self):
         '''Finetune model using transformers Trainer class. Save final model in /models/model_name'''
         #initialize the transformers trainer
-        training_args = Seq2SeqTrainingArguments(output_dir="test_trainer", evaluation_strategy="epoch", generation_max_length=512)
+        config = {
+            "output_dir": "test_trainer",
+            "evaluation_strategy": "epoch",
+            "generation_max_length": 512,
+            "per_gpu_train_batch_size": 2,
+            "per_device_eval_batch_size": 4
+        }
+        training_args = Seq2SeqTrainingArguments(**config)
         self.trainer = Seq2SeqTrainer(
             model=self.model,
             args=training_args,
@@ -94,7 +110,7 @@ class Model():
 
     def postprocess_text(self, preds, labels):
         preds = [pred.strip() for pred in preds]
-        labels = [[label.strip()] for label in labels]
+        labels = [label.strip() for label in labels]
         return preds, labels
 
 
@@ -103,7 +119,6 @@ class Model():
         sample_size = len(labels)
         assert len(preds) == len(labels)
         for i in range(len(preds)):
-            print(preds[i], labels[i])
             accur_count += 1 if preds[i] == labels[i]  else 0
         
         return accur_count / sample_size * 100
@@ -134,7 +149,8 @@ class Model():
         print("Evaluating...")
         acc = model.evaluate()
         print("Accuracy: ", acc)
+        
 
 if __name__ == "__main__":
     model = Model("test")
-    model.run("./data/single")
+    model.run("./data/medium")
