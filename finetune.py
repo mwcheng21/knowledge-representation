@@ -1,16 +1,19 @@
-from unittest import result
 from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
 from transformers.trainer_seq2seq import Seq2SeqTrainer
-from transformers import PLBartForConditionalGeneration, PLBartModel, PLBartTokenizer, PLBartConfig
+from transformers import PLBartForConditionalGeneration, PLBartTokenizer
 import numpy as np
 import os
 from itertools import zip_longest
-from datasets import Dataset, DatasetDict
-from torch import tensor, squeeze
+from datasets import Dataset
+from torch import squeeze
 
 
 class Model():
     def __init__(self, model_name, pretrained_tokenizer_path=None, pretrained_model_path=None):
+
+        '''Config'''
+        os.environ["CUDA_VISIBLE_DEVICES"]="1"
+
         '''Init function'''
         self.model_name = model_name
         #init pretrained model and tokenizer
@@ -86,8 +89,8 @@ class Model():
             "output_dir": "test_trainer",
             "evaluation_strategy": "epoch",
             "generation_max_length": 512,
-            "per_gpu_train_batch_size": 2,
-            "per_device_eval_batch_size": 4
+            # "per_gpu_train_batch_size": 2,
+            # "per_device_eval_batch_size": 4
         }
         training_args = Seq2SeqTrainingArguments(**config)
         self.trainer = Seq2SeqTrainer(
