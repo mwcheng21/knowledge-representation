@@ -1,8 +1,8 @@
 import os
 
 
-PATCH_START = ' //#-PATCH-START-# '
-PATCH_END = ' //#-PATCH-END-# '
+PATCH_START = " /*#-PATCH-START-#*/ "
+PATCH_END = " /*#-PATCH-END-#*/ "
 
 
 
