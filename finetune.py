@@ -1,33 +1,68 @@
 from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
 from transformers.trainer_seq2seq import Seq2SeqTrainer
-from transformers import PLBartForConditionalGeneration, PLBartTokenizer
+from transformers import PLBartForConditionalGeneration, PLBartTokenizer, PLBartConfig
 import numpy as np
 import os
 from itertools import zip_longest
 from datasets import Dataset
 from torch import squeeze
+from tokenizer import FullPLBartTokenizer
+
+DEFAULT_CONFIG = {
+    "activation_dropout": 0.0,
+    "activation_function": "gelu",
+    "architectures": [
+        "PLBartForConditionalGeneration"
+    ],
+    "attention_dropout": 0.1,
+    "bos_token_id": 0,
+    "classifier_dropout": 0.0,
+    "d_model": 768,
+    "decoder_attention_heads": 12,
+    "decoder_ffn_dim": 4096,
+    "decoder_layerdrop": 0.0,
+    "decoder_layers": 6,
+    "dropout": 0.1,
+    "encoder_attention_heads": 12,
+    "encoder_ffn_dim": 4096,
+    "encoder_layerdrop": 0.0,
+    "encoder_layers": 6,
+    "eos_token_id": 2,
+    "forced_eos_token_id": 2,
+    "init_std": 0.02,
+    "is_encoder_decoder": True,
+    "model_type": "plbart",
+    "num_hidden_layers": 6,
+    "pad_token_id": 1,
+    "scale_embedding": True,
+    "transformers_version": "4.13.0.dev0",
+    "use_cache": True,
+    "vocab_size": 50005,
+    "max_position_embeddings": 2048
+}
 
 
 class Model():
     def __init__(self, model_name, pretrained_tokenizer_path=None, pretrained_model_path=None):
 
         '''Config'''
-        os.environ["CUDA_VISIBLE_DEVICES"]="1"
+        os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
         '''Init function'''
         self.model_name = model_name
         #init pretrained model and tokenizer
         if pretrained_model_path==None:
-            self.tokenizer = PLBartTokenizer.from_pretrained("uclanlp/plbart-base", tgt_lang="java")
+            self.tokenizer = FullPLBartTokenizer.from_pretrained("uclanlp/plbart-refine-java-medium", tgt_lang="java")
         else:
             self.tokenizer = PLBartTokenizer.from_pretrained(pretrained_tokenizer_path, local_files_only=True)
         
         #TODO: what model to use PLBartModel or PLBartForConditionalGeneration? Not sure the difference
+
         if pretrained_model_path==None:
-            # configuration = PLBartConfig(**default_config)
-            # print(configuration)
-            # self.model = PLBartForConditionalGeneration(configuration)
-            self.model = PLBartForConditionalGeneration.from_pretrained('uclanlp/plbart-base')
+            configuration = PLBartConfig(**DEFAULT_CONFIG)
+            print(configuration)
+            self.model = PLBartForConditionalGeneration(configuration)
+            # self.model = PLBartForConditionalGeneration.from_pretrained('uclanlp/plbart-base')
         else:
             self.model = PLBartForConditionalGeneration.from_pretrained(pretrained_model_path, local_files_only=True)
     
@@ -39,13 +74,13 @@ class Model():
         train, eval, test  = self.combine_modalities(save_dir)
 
         self.train_dataset = train.map(self.tokenize_function, remove_columns=["text"])\
-                                  .filter(lambda example: len(example["input_ids"]) <= 1024)
+                                  .filter(lambda example: len(example["input_ids"]) <= 2048)
                                   
         self.eval_dataset = eval.map(self.tokenize_function, remove_columns=["text"])\
-                                .filter(lambda example: len(example["input_ids"]) <= 1024)
+                                .filter(lambda example: len(example["input_ids"]) <= 2048)
 
         self.test_dataset = test.map(self.tokenize_function, remove_columns=["text"])\
-                                .filter(lambda example: len(example["input_ids"]) <= 1024)
+                                .filter(lambda example: len(example["input_ids"]) <= 2048)
 
         self.train_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
         self.eval_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
@@ -89,8 +124,8 @@ class Model():
             "output_dir": "test_trainer",
             "evaluation_strategy": "epoch",
             "generation_max_length": 512,
-            # "per_gpu_train_batch_size": 2,
-            # "per_device_eval_batch_size": 4
+            "per_gpu_train_batch_size": 2,
+            "per_device_eval_batch_size": 4
         }
         training_args = Seq2SeqTrainingArguments(**config)
         self.trainer = Seq2SeqTrainer(
@@ -156,4 +191,4 @@ class Model():
 
 if __name__ == "__main__":
     model = Model("test")
-    model.run("./data/medium")
+    model.run("./data/single")
