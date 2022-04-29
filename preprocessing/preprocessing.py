@@ -82,7 +82,7 @@ class Traveser:
         self.id_map = {}
         self.syntax_node_id = 0
         self.syntax_map = {}
-        self.sep = ' <s> '
+        self.sep = ' '
         self.read_nodes = {}
         self.write_nodes = {}
 
