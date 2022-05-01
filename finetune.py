@@ -2,15 +2,11 @@ from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
 from transformers.trainer_seq2seq import Seq2SeqTrainer
 from transformers import PLBartForConditionalGeneration, PLBartTokenizer
 import numpy as np
-import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 from itertools import zip_longest
 from datasets import Dataset
 from torch import squeeze, cuda
-import math
-import GPUtil
 import torch
-GPUtil.showUtilization()
+import os
 
 
 class Model():
@@ -90,11 +86,11 @@ class Model():
         '''Finetune model using transformers Trainer class. Save final model in /models/model_name'''
         #initialize the transformers trainer
         config = {
-            "output_dir": "test_trainer",
-            "evaluation_strategy": "epoch",
+            "save_strategy": 'no',
+            "evaluation_strategy": "steps",
             "generation_max_length": 512,
-            # "per_gpu_train_batch_size": 2,
-            # "per_device_eval_batch_size": 4
+            "per_device_train_batch_size": 1,
+            "per_device_eval_batch_size": 1
         }
         training_args = Seq2SeqTrainingArguments(**config)
         self.trainer = Seq2SeqTrainer(
@@ -117,20 +113,24 @@ class Model():
         return start, end
 
 
-    def batch_train(self, batch_id: int, total_batch_num: int, pretrained_model_path: str) -> str:
+    def batch_train(self, batch_id: int, total_batch_num: int, pretrained_model_path: str, epoch: int) -> str:
         #initialize the transformers trainer
         config = {
-            "output_dir": f"training/trainer_{batch_id}",
-            "evaluation_strategy": "epoch",
+            "output_dir": "./trainer/training",
+            "evaluation_strategy": "steps",
             "generation_max_length": 512,
-            # "per_device_train_batch_size": 2,
-            # "per_device_eval_batch_size": 4
+            "per_device_train_batch_size": 1,
+            "per_device_eval_batch_size": 1,
+            "save_strategy": 'no',
+            'num_train_epochs': 1
         }
 
         # Update the model
         if pretrained_model_path is not None:
             assert os.path.exists(pretrained_model_path)
-            model = PLBartForConditionalGeneration.from_pretrained(pretrained_model_path, local_files_only=True)
+            model = PLBartForConditionalGeneration.from_pretrained(pretrained_model_path, \
+                                                                    local_files_only=True, \
+                                                                    output_loading_info=False)
         else:
             model = self.model
 
@@ -163,7 +163,7 @@ class Model():
         
         trainer.train()
 
-        checkpoint_path = f"model/{self.model_name}_{batch_id}_finetuned.pt"
+        checkpoint_path = f"model/{self.model_name}_epoch_{epoch}_finetuned.pt"
 
         model.save_pretrained(checkpoint_path)  
 
@@ -198,7 +198,7 @@ class Model():
         for i in range(len(preds)):
             accur_count += 1 if preds[i] == labels[i]  else 0
         
-        return accur_count / sample_size * 100
+        return accur_count / sample_size
 
 
     def compute_metrics(self, eval_pred):
@@ -220,9 +220,9 @@ class Model():
     def run(self, folder_name):
         '''Run finetuning'''
         print("Loading datasets...")
-        model.load_datasets(folder_name)
+        self.load_datasets(folder_name)
         print("Finetuning...")
-        model.train()
+        self.train()
         print("Evaluating...")
         acc = model.evaluate()
         print("Accuracy: ", acc)
@@ -233,26 +233,42 @@ class Model():
         print(f'''Dataset split uniformly by {batch_num} Portions''')
         print("Loading datasets...")
         self.load_datasets(folder_name)
-        batch_id = 0
         pretrain_path = None
+        MAX_EPOCH = 5
 
-        while batch_id != batch_num:
-            print("Finetuning", batch_id, "Portion")
-            pretrain_path, trainer = self.batch_train(batch_id, batch_num, pretrain_path)
-            batch_id += 1
-            print("Cleaning Cache")
-            cuda.empty_cache()
+
+        for epoch in range(MAX_EPOCH):
+            batch_id = 0
+            while batch_id != batch_num:
+                print("Epoch", epoch)
+                print("Finetuning", batch_id, "Portion")
+                pretrain_path, trainer = self.batch_train(batch_id, batch_num, pretrain_path, epoch)
+                print("Cleaning Cache")
+                cuda.empty_cache()
+                batch_id += 1
 
 
         print("Evaluating...")
-        acc = self.batch_evaluate(trainer)
-        
+        batch_id = 0
+        total_acc = 0
+        batch_num *= 2
+        while batch_id != batch_num:
+            test_start, test_end = self.get_portion(batch_id, batch_num, len(self.test_dataset))
+            if batch_id < batch_num - 1:
+                test_dataset = torch.utils.data.Subset(self.test_dataset, list(range(test_start, test_end, 1)))
+            else:
+                test_dataset = torch.utils.data.Subset(self.test_dataset, list(range(test_start,  len(self.test_dataset), 1)))
+            test_pred = trainer.predict(test_dataset)
+            total_acc += self.compute_metrics(test_pred)['Acc']
+            batch_id += 1
+
+        acc = total_acc / batch_num * 100
         print("Accuracy: ", acc)
     
 
     
 
 if __name__ == "__main__":
-    model = Model("Modit-G", pretrained_model_path="./test_trainer/checkpoint-12000")
-    ## model.batch_run("./data/tiny", 4)
-    model.run("./data/tiny")
+    model = Model("Modit-G", pretrained_model_path="model/Modit-G_18_finetuned.pt")
+    #model.batch_run("./data/medium", 1000)
+    model.run("./data/medium")
