@@ -15,6 +15,9 @@ class Model():
         '''Config'''
         if(cuda.is_available()): print('GPU in using', cuda.current_device())
 
+        self.batch_size = 1000
+        self.MAX_EMBEDDINGS = 1024
+
         '''Init function'''
         self.model_name = model_name
         #init pretrained model and tokenizer
@@ -34,27 +37,35 @@ class Model():
     
 
     def load_datasets(self, save_dir):
+        print(save_dir)
         '''Load datasets from <save_dir> files (3 modalities)'''
         train, eval, test  = self.combine_modalities(save_dir)
 
         self.train_dataset = train.map(self.tokenize_function, remove_columns=["text"])\
-                                  .filter(lambda example: len(example["input_ids"]) <= 1024)
-                                  
+            .filter(lambda example: len(example["labels"]) <= self.MAX_EMBEDDINGS)\
+            .map(batched=True)
+
         self.eval_dataset = eval.map(self.tokenize_function, remove_columns=["text"])\
-                                .filter(lambda example: len(example["input_ids"]) <= 1024)
+            .filter(lambda example: len(example["labels"]) <= self.MAX_EMBEDDINGS)\
+            .map(batched=True)
 
         self.test_dataset = test.map(self.tokenize_function, remove_columns=["text"])\
-                                .filter(lambda example: len(example["input_ids"]) <= 1024)
+            .filter(lambda example: len(example["labels"]) <= self.MAX_EMBEDDINGS)\
+            .map(batched=True)
 
         self.train_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
         self.eval_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
         self.test_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
 
+        self.train_dataloader = torch.utils.data.DataLoader(self.train_dataset, batch_size=self.batch_size)
+        self.eval_dataloader = torch.utils.data.DataLoader(self.eval_dataset, batch_size=self.batch_size)
+        self.test_dataloader = torch.utils.data.DataLoader(self.test_dataset, batch_size=self.batch_size)
+
 
 
     def tokenize_function(self, examples):
-        model_inputs = self.tokenizer(examples["text"], padding="max_length", truncation=False, return_tensors="pt")
-        model_inputs["labels"] = squeeze(self.tokenizer(examples["labels"], padding="max_length", return_tensors="pt").input_ids) #TODO: do I tokenize this?
+        model_inputs = self.tokenizer(examples["text"], padding='max_length', truncation=False, return_tensors="pt")
+        model_inputs["labels"] = squeeze(self.tokenizer(examples["labels"], padding='max_length', return_tensors="pt").input_ids) #TODO: do I tokenize this?
         model_inputs["attention_mask"] = squeeze(model_inputs["attention_mask"])
         model_inputs["input_ids"] = squeeze(model_inputs["input_ids"])
 
@@ -86,11 +97,14 @@ class Model():
         '''Finetune model using transformers Trainer class. Save final model in /models/model_name'''
         #initialize the transformers trainer
         config = {
-            "save_strategy": 'no',
+           "output_dir": "./trainer/training",
             "evaluation_strategy": "steps",
             "generation_max_length": 512,
             "per_device_train_batch_size": 1,
-            "per_device_eval_batch_size": 1
+            "per_device_eval_batch_size": 1,
+            "save_strategy": 'no',
+            'num_train_epochs': 5,
+            'dataloader_pin_memory': False
         }
         training_args = Seq2SeqTrainingArguments(**config)
         self.trainer = Seq2SeqTrainer(
@@ -171,6 +185,32 @@ class Model():
             return checkpoint_path, trainer
         else:
             return checkpoint_path, None
+
+
+    def batched_train(self):
+        config = {
+            "output_dir": "./trainer/training",
+            "evaluation_strategy": "steps",
+            "generation_max_length": 512,
+            "per_device_train_batch_size": 1,
+            "per_device_eval_batch_size": 1,
+            "save_strategy": 'no',
+            'num_train_epochs': 1
+        }
+        training_args = Seq2SeqTrainingArguments(**config)
+
+
+        self.trainer = Seq2SeqTrainer(
+            model=self.model,
+            args=training_args,
+            train_dataset=self.train_dataloader,
+            eval_dataset=self.eval_dataloader,
+            compute_metrics=self.compute_metrics,
+        )
+
+        self.trainer.train()
+
+        self.model.save_pretrained("model/" + self.model_name + "_finetuned.pt")
 
 
     def evaluate(self):
