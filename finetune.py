@@ -17,22 +17,23 @@ class Model():
 
         self.batch_size = 1000
         self.MAX_EMBEDDINGS = 1024
+        self.train_portions = []
+        self.eval_portions = []
 
         '''Init function'''
         self.model_name = model_name
+
         #init pretrained model and tokenizer
         if pretrained_tokenizer_path==None:
-            self.tokenizer = PLBartTokenizer.from_pretrained("uclanlp/plbart-base", tgt_lang="java")
+            self.tokenizer = PLBartTokenizer.from_pretrained('uclanlp/plbart-base')
         else:
             self.tokenizer = PLBartTokenizer.from_pretrained(pretrained_tokenizer_path, local_files_only=True)
         
         #TODO: what model to use PLBartModel or PLBartForConditionalGeneration? Not sure the difference
         if pretrained_model_path==None:
-            # configuration = PLBartConfig(**default_config)
-            # print(configuration)
-            # self.model = PLBartForConditionalGeneration(configuration)
             self.model = PLBartForConditionalGeneration.from_pretrained('uclanlp/plbart-base')
         else:
+            print(pretrained_model_path)
             self.model = PLBartForConditionalGeneration.from_pretrained(pretrained_model_path, local_files_only=True)
     
 
@@ -42,25 +43,20 @@ class Model():
         train, eval, test  = self.combine_modalities(save_dir)
 
         self.train_dataset = train.map(self.tokenize_function, remove_columns=["text"])\
-            .filter(lambda example: len(example["labels"]) <= self.MAX_EMBEDDINGS)\
-            .map(batched=True)
+            .filter(lambda example: len(example["input_ids"]) <= self.MAX_EMBEDDINGS)
+            # .map(batched=True)
 
         self.eval_dataset = eval.map(self.tokenize_function, remove_columns=["text"])\
-            .filter(lambda example: len(example["labels"]) <= self.MAX_EMBEDDINGS)\
-            .map(batched=True)
+            .filter(lambda example: len(example["input_ids"]) <= self.MAX_EMBEDDINGS)
+            # .map(batched=True)
 
         self.test_dataset = test.map(self.tokenize_function, remove_columns=["text"])\
-            .filter(lambda example: len(example["labels"]) <= self.MAX_EMBEDDINGS)\
-            .map(batched=True)
+            .filter(lambda example: len(example["input_ids"]) <= self.MAX_EMBEDDINGS)
+            #.map(batched=True)
 
         self.train_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
         self.eval_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
         self.test_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
-
-        self.train_dataloader = torch.utils.data.DataLoader(self.train_dataset, batch_size=self.batch_size)
-        self.eval_dataloader = torch.utils.data.DataLoader(self.eval_dataset, batch_size=self.batch_size)
-        self.test_dataloader = torch.utils.data.DataLoader(self.test_dataset, batch_size=self.batch_size)
-
 
 
     def tokenize_function(self, examples):
@@ -120,97 +116,58 @@ class Model():
         self.model.save_pretrained("model/" + self.model_name + "_finetuned.pt")
 
 
-    def get_portion(self, batch_id: int, total_batch_num: int, total_sample_size: int):
-        portion_size = round(total_sample_size / total_batch_num)
-        start = batch_id * portion_size
-        end = start + portion_size
-        return start, end
+    def get_portions(batch_num: int, total: int):
+        portions = total // batch_num
+        res = []
+        start = 0
+        for _ in range(batch_num):
+            res.append(list(range(start, start + portions)))
+            start += portions
+                    
+        return res
 
 
-    def batch_train(self, batch_id: int, total_batch_num: int, pretrained_model_path: str, epoch: int) -> str:
+    def batch_train(self, batch_id: int, epoch: int, pretrain_path: str) -> str:
         #initialize the transformers trainer
+        checkpoint_path = f"model/{self.model_name}_epoch_{epoch}.pt"
+
         config = {
-            "output_dir": "./trainer/training",
-            "evaluation_strategy": "steps",
+            "output_dir": checkpoint_path,
+            "evaluation_strategy": "epoch",
             "generation_max_length": 512,
             "per_device_train_batch_size": 1,
             "per_device_eval_batch_size": 1,
-            "save_strategy": 'no',
+            "save_strategy": 'epoch',
             'num_train_epochs': 1
         }
+    
+        train_start, train_end = self.train_portions[batch_id]
 
-        # Update the model
-        if pretrained_model_path is not None:
-            assert os.path.exists(pretrained_model_path)
-            model = PLBartForConditionalGeneration.from_pretrained(pretrained_model_path, \
-                                                                    local_files_only=True, \
-                                                                    output_loading_info=False)
-        else:
-            model = self.model
-
-        train_start, train_end = self.get_portion(batch_id, total_batch_num, len(self.train_dataset))
-
-        eval_start, eval_end = self.get_portion(batch_id, total_batch_num, len(self.eval_dataset))
+        eval_start, eval_end = self.eval_portions[batch_id]
   
         # debug
         print("Training Portion: ",train_start, train_end)
 
         print("Eval Portion: ", eval_start, eval_end)
-
-
-        if batch_id < total_batch_num - 1:
-            train_dataset = torch.utils.data.Subset(self.train_dataset, list(range(train_start, train_end, 1)))
-            eval_dataset = torch.utils.data.Subset(self.eval_dataset, list(range(eval_start, eval_end, 1)))
-        else:
-            train_dataset = torch.utils.data.Subset(self.train_dataset, list(range(train_start, len(self.train_dataset), 1)))
-            eval_dataset = torch.utils.data.Subset(self.eval_dataset, list(range(eval_start, len(self.eval_dataset), 1)))
-
         
+        train_dataset = torch.utils.data.Subset(self.train_dataset, list(range(train_start, train_end, 1)))
+        eval_dataset = torch.utils.data.Subset(self.eval_dataset, list(range(eval_start, eval_end, 1)))
+
         training_args = Seq2SeqTrainingArguments(**config)
         trainer = Seq2SeqTrainer(
-            model=model,
+            model=self.model,
             args=training_args,
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
             compute_metrics=self.compute_metrics,
         )
         
-        trainer.train()
+        if pretrain_path is not None:
+            trainer.train(resume_from_checkpoint=pretrain_path)
+        else: 
+            trainer.train()
 
-        checkpoint_path = f"model/{self.model_name}_epoch_{epoch}_finetuned.pt"
-
-        model.save_pretrained(checkpoint_path)  
-
-        if batch_id == total_batch_num - 1:
-            return checkpoint_path, trainer
-        else:
-            return checkpoint_path, None
-
-
-    def batched_train(self):
-        config = {
-            "output_dir": "./trainer/training",
-            "evaluation_strategy": "steps",
-            "generation_max_length": 512,
-            "per_device_train_batch_size": 1,
-            "per_device_eval_batch_size": 1,
-            "save_strategy": 'no',
-            'num_train_epochs': 1
-        }
-        training_args = Seq2SeqTrainingArguments(**config)
-
-
-        self.trainer = Seq2SeqTrainer(
-            model=self.model,
-            args=training_args,
-            train_dataset=self.train_dataloader,
-            eval_dataset=self.eval_dataloader,
-            compute_metrics=self.compute_metrics,
-        )
-
-        self.trainer.train()
-
-        self.model.save_pretrained("model/" + self.model_name + "_finetuned.pt")
+        return checkpoint_path
 
 
     def evaluate(self):
@@ -236,11 +193,14 @@ class Model():
         sample_size = len(labels)
         assert len(preds) == len(labels)
         for i in range(len(preds)):
+            # if self.is_predction:
+            #     print(preds[i] )
+            #     print(labels[i])
             accur_count += 1 if preds[i] == labels[i]  else 0
         
-        return accur_count / sample_size
-
-
+        return accur_count / sample_size * 100
+    
+    
     def compute_metrics(self, eval_pred):
         '''Helper function for what metric training should use'''
         labels = eval_pred.label_ids
@@ -254,7 +214,7 @@ class Model():
   
         acc = self.acc_metric(decoded_preds, decoded_labels)
 
-        return { 'Acc': round(acc, 4)}
+        return { 'acc': acc }
 
 
     def run(self, folder_name):
@@ -273,42 +233,69 @@ class Model():
         print(f'''Dataset split uniformly by {batch_num} Portions''')
         print("Loading datasets...")
         self.load_datasets(folder_name)
-        pretrain_path = None
         MAX_EPOCH = 5
+        self.train_len = len(self.train_dataset)
+        self.eval_len = len(self.eval_dataset)
+        print("Training Sample:", self.train_len)
+        print("Eval Sample:", self.eval_len)
+        checkpoint_path = None
 
-
+        self.train_portions = self.get_portions(batch_num, self.train_len)
+        self.eval_portions = self.get_portions(batch_num, self.train_len)
+        
         for epoch in range(MAX_EPOCH):
             batch_id = 0
             while batch_id != batch_num:
                 print("Epoch", epoch)
                 print("Finetuning", batch_id, "Portion")
-                pretrain_path, trainer = self.batch_train(batch_id, batch_num, pretrain_path, epoch)
+                checkpoint_path = self.batch_train(batch_id, epoch, checkpoint_path)
                 print("Cleaning Cache")
                 cuda.empty_cache()
                 batch_id += 1
-
-
+                    
+    
+    def evaluate_pretrained_output(self, folder_name: str, batch_num: int = 3):     
         print("Evaluating...")
+        self.load_datasets(folder_name)
+
+        config = {
+            "output_dir": "./trainer/training",
+            "evaluation_strategy": "steps",
+            "generation_max_length": 512,
+            "per_device_train_batch_size": 1,
+            "per_device_eval_batch_size": 1,
+            "save_strategy": 'no',
+            'num_train_epochs': 1
+        }
+        training_args = Seq2SeqTrainingArguments(**config)
+
+
+        trainer = Seq2SeqTrainer(
+            model=self.model,
+            args=training_args,
+            train_dataset=None,
+            eval_dataset=None,
+            compute_metrics=self.compute_metrics,
+        )
+        
         batch_id = 0
         total_acc = 0
-        batch_num *= 2
+        portions = self.get_portions(batch_num, len(self.test_dataset))
+        #        batch_num *= 2
         while batch_id != batch_num:
-            test_start, test_end = self.get_portion(batch_id, batch_num, len(self.test_dataset))
-            if batch_id < batch_num - 1:
-                test_dataset = torch.utils.data.Subset(self.test_dataset, list(range(test_start, test_end, 1)))
-            else:
-                test_dataset = torch.utils.data.Subset(self.test_dataset, list(range(test_start,  len(self.test_dataset), 1)))
+            test_start, test_end = portions[batch_id]
+            test_dataset = torch.utils.data.Subset(self.test_dataset, list(range(test_start, test_end, 1)))
             test_pred = trainer.predict(test_dataset)
             total_acc += self.compute_metrics(test_pred)['Acc']
+            print(total_acc)
             batch_id += 1
 
-        acc = total_acc / batch_num * 100
-        print("Accuracy: ", acc)
-    
-
+        acc = total_acc / batch_num
+        print("Accuracy: ", acc)        
     
 
 if __name__ == "__main__":
-    model = Model("Modit-G", pretrained_model_path="model/Modit-G_18_finetuned.pt")
-    #model.batch_run("./data/medium", 1000)
-    model.run("./data/medium")
+    model = Model("Modit-G-improve", pretrained_model_path="")
+    model.batch_run("./data/medium", 1000)
+    # model.run("./data/medium")
+    # model.evaluate_pretrained_output('./data/medium', 1000)

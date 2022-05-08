@@ -16,9 +16,9 @@ def main():
 
 
 def encode(set, type = 'fullGraph'):
-    input_file = os.path.join(os.path.dirname(os.getcwd()), 'data/medium/%s/data.prev_full_code' % set)
-    os.makedirs( os.path.join(os.path.dirname(os.getcwd()), 'encode-data/medium/%s' % set), exist_ok=True)
-    out_file = os.path.join(os.path.dirname(os.getcwd()), ('encode-data/medium/%s/data.full_code_%s' % (set, type)))
+    input_file = os.path.join(os.path.dirname(os.getcwd()), 'original-data/medium/%s/data.prev_full_code' % set)
+    os.makedirs( os.path.join(os.path.dirname(os.getcwd()), 'data/medium/%s' % set), exist_ok=True)
+    out_file = os.path.join(os.path.dirname(os.getcwd()), ('data/medium/%s/data.full_code_%s' % (set, type)))
     preprocess(input_file, out_file, type)
 
 def move_commit(set): 
@@ -33,13 +33,23 @@ def move_buggy(set):
 
 
 if __name__ == '__main__':
+        # if type == 'fullGraph':
+        #     nodes, edges = self.fullGraph()            
+        # elif type == 'leaveOnly':
+        #     nodes, edges = self.leaveOnly()        
+        # elif type == 'astOnly':
+        #     nodes, edges = self.astEdgeOnly()      
+        # elif type == 'cfgOnly':
+        #     nodes, edges = self.cfgEdgeOnly()    
+        # elif type == 'dfgOnly':
+        #     nodes, edges = self.dfgEdgeOnly()   
     type = 'leaveOnly'
     for set in ['train', 'eval', 'test']:
         print('Encoding: ', set, '.....')
-        encode(set, type)
-        print('Copy Commit Msg: ', set, '.....')
-        move_commit(set)
-        print('Copy Buggy Code: ', set, '.....')
-        move_buggy(set)
+        encode(set, 'dfgOnly')
+        # print('Copy Commit Msg: ', set, '.....')
+        # move_commit(set)
+        # print('Copy Buggy Code: ', set, '.....')
+        # move_buggy(set)
     
 
