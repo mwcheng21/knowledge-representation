@@ -5,30 +5,31 @@ import os
 code = open("test.java", "r").read()
 
 
-def main():
-    visitor = Traveser('java', code)
-    visitor.travesal()
+# def main():
+#     visitor = Traveser('java', code)
+#     visitor.travesal()
 
-    # print(visitor.nodes)
-    # print(visitor.control_flow_nodes)
-    ve = visitor.encode()
-    print(ve)
+#     # print(visitor.nodes)
+#     # print(visitor.control_flow_nodes)
+#     print(visitor.patch_tokens.)
+# main()
 
 
 def encode(set, type = 'fullGraph'):
-    input_file = os.path.join(os.path.dirname(os.getcwd()), 'original-data/medium/%s/data.prev_full_code' % set)
-    os.makedirs( os.path.join(os.path.dirname(os.getcwd()), 'data/medium/%s' % set), exist_ok=True)
-    out_file = os.path.join(os.path.dirname(os.getcwd()), ('data/medium/%s/data.full_code_%s' % (set, type)))
-    preprocess(input_file, out_file, type)
+    input_file = os.path.join(os.path.dirname(os.getcwd()), 'original-data/small/%s/data.parent_full_code_hl' % set)
+    os.makedirs( os.path.join(os.path.dirname(os.getcwd()), 'data/small/%s' % set), exist_ok=True)
+    out_file = os.path.join(os.path.dirname(os.getcwd()), ('data/small/%s/data.full_code_%s' % (set, type)))
+    out_buggy = os.path.join(os.path.dirname(os.getcwd()), ('data/small/%s/data.buggy_only_lw_%s' % (set, type)))
+    preprocess(input_file, out_file, out_buggy, type)
 
 def move_commit(set): 
-    input_file = os.path.join(os.path.dirname(os.getcwd()), 'data/medium/%s/data.commit_msg' % set)
-    output_file = os.path.join(os.path.dirname(os.getcwd()), 'encode-data/medium/%s/data.commit_msg' % set)
+    input_file = os.path.join(os.path.dirname(os.getcwd()), 'original-data/small/%s/data.commit_msg' % set)
+    output_file = os.path.join(os.path.dirname(os.getcwd()), 'data/small/%s/data.commit_msg' % set)
     os.system(('cp %s %s' % (input_file, output_file)))
 
 def move_buggy(set): 
-    input_file = os.path.join(os.path.dirname(os.getcwd()), 'data/medium/%s/data.buggy_only' % set)
-    output_file = os.path.join(os.path.dirname(os.getcwd()), 'encode-data/medium/%s/data.buggy_only' % set)
+    input_file = os.path.join(os.path.dirname(os.getcwd()), 'original-data/small/%s/data.parent_buggy_only' % set)
+    output_file = os.path.join(os.path.dirname(os.getcwd()), 'data/small/%s/data.parent_buggy_only' % set)
     os.system(('cp %s %s' % (input_file, output_file)))
 
 
@@ -43,13 +44,13 @@ if __name__ == '__main__':
         #     nodes, edges = self.cfgEdgeOnly()    
         # elif type == 'dfgOnly':
         #     nodes, edges = self.dfgEdgeOnly()   
-    type = 'leaveOnly'
+    type = 'fullGraph'
     for set in ['train', 'eval', 'test']:
         print('Encoding: ', set, '.....')
-        encode(set, 'dfgOnly')
-        # print('Copy Commit Msg: ', set, '.....')
-        # move_commit(set)
-        # print('Copy Buggy Code: ', set, '.....')
-        # move_buggy(set)
-    
+        #encode(set, type)
+        print('Copy Commit Msg: ', set, '.....')
+        move_commit(set)
+        print('Copy Buggy Code: ', set, '.....')
+        move_buggy(set)
+    pass
 

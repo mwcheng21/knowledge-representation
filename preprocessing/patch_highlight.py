@@ -36,11 +36,11 @@ def highlight(contextPath: str, patchPath: str, outFilePath: str):
         
     
 def process(set = 'train'):
-    ctx_file = os.path.join('./', 'original-data/medium/%s/data.prev_full_code' % set)
-    patch_file = os.path.join('./' 'original-data/medium/%s/data.buggy_only' % set)
-    output_file = os.path.join('./', 'original-data/medium/%s/data.prev_full_code_hl' % set)
+    ctx_file = os.path.join('./', 'original-data/small/%s/data.parent_code' % set)
+    patch_file = os.path.join('./' 'original-data/small/%s/data.parent_buggy_only' % set)
+    output_file = os.path.join('./', 'original-data/small/%s/data.parent_full_code_hl' % set)
     
     highlight(ctx_file, patch_file, output_file)
 
 
-process()
+process('test')

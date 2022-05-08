@@ -21,6 +21,12 @@ Language.build_library(
 IS_LEAF = 1
 NOT_LEFT = 0
 
+IS_PATCH = 1
+NOT_PATCH = 0
+
+PATCH_START = "/*#-PATCH-START-#*/"
+PATCH_END = "/*#-PATCH-END-#*/"
+
 
 class EdgeType(Enum):
     CFG_Forward    = 1
@@ -82,11 +88,12 @@ class Traveser:
         self.id_map = {}
         self.syntax_node_id = 0
         self.syntax_map = {}
-        self.sep = ' '
+        self.sep = ' <s> '
         self.read_nodes = {}
         self.write_nodes = {}
-
-
+        self.patch_tokens = []
+        self.isPatch = False
+        
 
     def setId(self, node, id):
         query = '%s%s%s' % (node.start_point, node.end_point, node.type)
@@ -131,8 +138,6 @@ class Traveser:
             else:
                 self.write_nodes[variable] = [node_id]
                 self.read_nodes[variable] = [node_id]
-
-
         pass
 
 
@@ -162,11 +167,21 @@ class Traveser:
         # Insert the ID for later queries
         self.setId(node, self.order)
 
+        # Make sure Turn it off before actuall handling
+        if node.type == 'block_comment' and node.text.decode().strip() == PATCH_END.strip(): 
+            self.isPatch = False 
+
+
+        patch_signal = IS_PATCH if self.isPatch else NOT_PATCH
+
+
         if node.child_count == 0:
-            u = '!%s! %s %s' % (IS_LEAF, node.text.decode('utf8'), self.order)
+            token_val = node.text.decode('utf8')
+            u = '!%s! %s %s %s' % (IS_LEAF, token_val, self.order, patch_signal)
             self.nodes.append(u)
             self.control_flow_nodes.append(u)
             self.id_map[u] = self.order # For later connecting CFG edge
+            if self.isPatch: self.patch_tokens.append(f'{token_val} {self.order}')
             if node.type == 'identifier' or node.type == 'type_identifier':
                 self.buildDataFlow(node)
     
@@ -178,9 +193,8 @@ class Traveser:
                 self.syntax_map[node.type] = nodeType
                 self.syntax_node_id += 1
 
-            u = '!%s! %s %s' % (NOT_LEFT, nodeType, self.order)
+            u = '!%s! %s %s %s' % (NOT_LEFT, nodeType, self.order, patch_signal)
             self.nodes.append(u)
-           
         
        
         # AST edge
@@ -188,9 +202,13 @@ class Traveser:
             parent_id = self.getId(node.parent)
             self.pushEdge(parent_id, self.order, EdgeType.AST_Forward.value)
             # self.pushEdge(self.order, parent_id, EdgeType.AST_Revert.value)  
-        
+
+
+        if node.type == 'block_comment' and node.text.decode().strip() == PATCH_START.strip(): 
+            self.isPatch = True 
+
         self.order += 1
-        
+
 
     """
     Pre-order DFS
@@ -219,12 +237,12 @@ class Traveser:
 
 
         # Handle the CFG edge in the end
-        for leaf in range(1, len(self.control_flow_nodes)):
-            prev = leaf - 1
-            u = self.control_flow_nodes[prev]
-            v = self.control_flow_nodes[leaf]
-            self.pushEdge(self.id_map[u], self.id_map[v], EdgeType.CFG_Forward.value)
-            # self.pushEdge(self.id_map[v], self.id_map[u], EdgeType.CFG_Revert.value)
+        # for leaf in range(1, len(self.control_flow_nodes)):
+        #     prev = leaf - 1
+        #     u = self.control_flow_nodes[prev]
+        #     v = self.control_flow_nodes[leaf]
+        #     self.pushEdge(self.id_map[u], self.id_map[v], EdgeType.CFG_Forward.value)
+        #     # self.pushEdge(self.id_map[v], self.id_map[u], EdgeType.CFG_Revert.value)
         
 
     def leaveOnly(self): 
@@ -275,7 +293,7 @@ class Traveser:
         return nodes, edges
 
     
-    def encode(self, type: str = 'leaveOnly'):
+    def encode(self, type: str = 'fullGraph'):
         NODE_START = '<V>'
         EDGE_START = '<E>'
     
@@ -302,9 +320,8 @@ class Traveser:
 def encode(sample: str, type = 'fullGraph') -> str:
     visitor = Traveser('java', sample)
     visitor.travesal()
-    return visitor.encode(type)
+    return visitor.encode(type), ' '.join(visitor.patch_tokens)
    
-
 
 def readFile(filePath: str, outFilePath: str) -> Tuple[List[str], TextIOWrapper]:
     samples = open(filePath, 'r').readlines()
@@ -312,14 +329,18 @@ def readFile(filePath: str, outFilePath: str) -> Tuple[List[str], TextIOWrapper]
     return samples, outFile
 
 
-def preprocess(filePath: str, outFilePath: str, type: str):
+def preprocess(filePath: str, outFilePath: str, out_buggy: str, type: str):
     assert os.path.exists(filePath)
     assert os.path.isfile(filePath)
 
     samples, outFile = readFile(filePath, outFilePath)
+    out_buggy_fd = open(out_buggy, 'w+')
 
     for sample in samples:
-        encoding = encode(sample, type)
+        encoding, patch_lw = encode(sample, type)
         outFile.write(encoding)
+        out_buggy_fd.write(patch_lw + '\n')
+
+
 
 
