@@ -1,13 +1,14 @@
 from tkinter.messagebox import NO
 from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
 from transformers.trainer_seq2seq import Seq2SeqTrainer
-from transformers import PLBartForConditionalGeneration, PLBartTokenizer
+from transformers import PLBartForConditionalGeneration, PLBartTokenizer, AdamW, get_constant_schedule
 import numpy as np
 from itertools import zip_longest
 from datasets import Dataset
 from torch import squeeze, cuda
 import torch
 import os
+import math
 
 
 class Model():
@@ -70,7 +71,8 @@ class Model():
 
 
     def combine_modalities(self, save_dir):
-        file_names  = ['data.buggy_only_lw_fullGraph', 'data.commit_msg', 'data.full_code_fullGraph', 'data.fixed_only']
+        # file_names  = ['data.buggy_only_lw_fullGraph', 'data.commit_msg', 'data.full_code_fullGraph', 'data.fixed_only']
+        file_names = ['data.buggy_only', 'data.commit_msg', 'data.full_code_fullGraph', 'data.fixed_only']
         out = {}
         for mode in ["train", "test", "eval"]:
             data = []
@@ -101,7 +103,6 @@ class Model():
             "per_device_train_batch_size": 1,
             "per_device_eval_batch_size": 1,
             "save_strategy": 'epoch',
-            'num_train_epochs': 10
         }
         training_args = Seq2SeqTrainingArguments(**config)
         self.trainer = Seq2SeqTrainer(
@@ -134,27 +135,8 @@ class Model():
 
         checkpoint_path = f"model/{self.model_name}_epoch_{epoch}_finetuned.pt"
 
-        config = { 
-            "output_dir": "./trainer/training",
-            "evaluation_strategy": "epoch",
-            "generation_max_length": 512,
-            "per_device_train_batch_size": 1,
-            "per_device_eval_batch_size": 1,
-            "save_strategy": 'no',
-            'num_train_epochs': 1
-        }
-    
-        train_start, train_end = self.train_portions[batch_id]
-
-        eval_start, eval_end = self.eval_portions[batch_id]
-  
-        # debug
-        print("Training Portion: ",train_start, train_end)
-
-        print("Eval Portion: ", eval_start, eval_end)
-        
-        train_dataset = torch.utils.data.Subset(self.train_dataset, list(range(train_start, train_end, 1)))
-        eval_dataset = torch.utils.data.Subset(self.eval_dataset, list(range(eval_start, eval_end, 1)))
+        lr = pow(0.9992, batch_id+1) * pow(0.4, epoch+1) * 0.1
+        print(f'Learning Rate: {lr}')
 
         if pretrained_model_path is not None:
             model = PLBartForConditionalGeneration.from_pretrained(pretrained_model_path, \
@@ -165,7 +147,37 @@ class Model():
         else:
             model = self.model
 
+
+        config = { 
+            "output_dir": f'./trainer/training_epoch{epoch}_batch{batch_id}',
+            "evaluation_strategy": "epoch",
+            "generation_max_length": 512,
+            "per_device_train_batch_size": 1,
+            "per_device_eval_batch_size": 1,
+            "save_strategy": 'no',
+            'num_train_epochs': 1,
+            'learning_rate': lr,
+            'logging_strategy': 'epoch',
+            'log_level': 'info',
+            'lr_scheduler_type': 'constant'
+        }
+
         training_args = Seq2SeqTrainingArguments(**config)
+
+    
+        train_start, train_end = self.train_portions[batch_id]
+
+        eval_start, eval_end = self.eval_portions[batch_id]
+        
+  
+        # debug
+        print("Training Portion: ",train_start, train_end)
+
+        print("Eval Portion: ", eval_start, eval_end)
+        
+        train_dataset = torch.utils.data.Subset(self.train_dataset, list(range(train_start, train_end, 1)))
+        eval_dataset = torch.utils.data.Subset(self.eval_dataset, list(range(eval_start, eval_end, 1)))
+                
         trainer = Seq2SeqTrainer(
             model=model,
             args=training_args,
@@ -173,8 +185,9 @@ class Model():
             eval_dataset=eval_dataset,
             compute_metrics=self.compute_metrics,
         )
-        
         trainer.train()
+
+        trainer.save_state()
         model.save_pretrained(checkpoint_path) 
         return checkpoint_path
 
@@ -307,7 +320,7 @@ class Model():
     
 
 if __name__ == "__main__":
-    model = Model("Modit-G-improve", pretrained_model_path=None)
-    model.batch_run("./data/small", 750)
+    model = Model("Modit-G-improve-test", pretrained_model_path=None)
+    model.batch_run("./data/tiny", 10)
     #model.run("./data/small")
     # model.evaluate_pretrained_output('./data/medium', 1000)

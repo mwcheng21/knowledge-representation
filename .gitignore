@@ -16,4 +16,5 @@ encoded-data*
 encode-data*
 model/
 original-data/
+trainer/
 test.py
