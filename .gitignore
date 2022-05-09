@@ -6,6 +6,7 @@
 .vscode
 
 /data/medium
+/data
 
 /encode-data/
 /preprocessing/venv/

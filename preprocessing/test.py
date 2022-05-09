@@ -32,6 +32,11 @@ def move_buggy(set):
     output_file = os.path.join(os.path.dirname(os.getcwd()), 'data/small/%s/data.parent_buggy_only' % set)
     os.system(('cp %s %s' % (input_file, output_file)))
 
+def move_fixed(set): 
+    input_file = os.path.join(os.path.dirname(os.getcwd()), 'original-data/small/%s/data.child_code' % set)
+    output_file = os.path.join(os.path.dirname(os.getcwd()), 'data/small/%s/data.fixed_only' % set)
+    os.system(('cp %s %s' % (input_file, output_file)))
+
 
 if __name__ == '__main__':
         # if type == 'fullGraph':
@@ -52,5 +57,6 @@ if __name__ == '__main__':
         move_commit(set)
         print('Copy Buggy Code: ', set, '.....')
         move_buggy(set)
+        move_fixed(set)
     pass
 
