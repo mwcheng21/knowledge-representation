@@ -1,3 +1,4 @@
+from cgi import test
 from tkinter.messagebox import NO
 from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
 from transformers.trainer_seq2seq import Seq2SeqTrainer
@@ -44,21 +45,21 @@ class Model():
         '''Load datasets from <save_dir> files (3 modalities)'''
         train, eval, test  = self.combine_modalities(save_dir)
 
-        self.train_dataset = train.map(self.tokenize_function, remove_columns=["text"])\
-            .filter(lambda example: len(example["input_ids"]) <= self.MAX_EMBEDDINGS)
-            # .map(batched=True)
+        # self.train_dataset = train.map(self.tokenize_function, remove_columns=["text"])\
+        #     .filter(lambda example: len(example["input_ids"]) <= self.MAX_EMBEDDINGS)
+        #     # .map(batched=True)
 
-        self.eval_dataset = eval.map(self.tokenize_function, remove_columns=["text"])\
-            .filter(lambda example: len(example["input_ids"]) <= self.MAX_EMBEDDINGS)
-            # .map(batched=True)
+        # self.eval_dataset = eval.map(self.tokenize_function, remove_columns=["text"])\
+        #     .filter(lambda example: len(example["input_ids"]) <= self.MAX_EMBEDDINGS)
+        #     # .map(batched=True)
 
         self.test_dataset = test.map(self.tokenize_function, remove_columns=["text"])\
             .filter(lambda example: len(example["input_ids"]) <= self.MAX_EMBEDDINGS)
             #.map(batched=True)
 
-        self.train_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
-        self.eval_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
-        self.test_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
+        # self.train_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
+        # self.eval_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
+        # self.test_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
 
 
     def tokenize_function(self, examples):
@@ -71,8 +72,8 @@ class Model():
 
 
     def combine_modalities(self, save_dir):
-        # file_names  = ['data.buggy_only_lw_fullGraph', 'data.commit_msg', 'data.full_code_fullGraph', 'data.fixed_only']
-        file_names = ['data.buggy_only', 'data.commit_msg', 'data.full_code_fullGraph', 'data.fixed_only']
+        file_names  = ['data.parent_buggy_only', 'data.commit_msg', 'data.full_code_fullGraph', 'data.fixed_only']
+        # file_names = ['data.buggy_only', 'data.commit_msg', 'data.full_code_leaveOnly', 'data.fixed_only']
         out = {}
         for mode in ["train", "test", "eval"]:
             data = []
@@ -149,7 +150,7 @@ class Model():
 
 
         config = { 
-            "output_dir": f'./trainer/training_epoch{epoch}_batch{batch_id}',
+            "output_dir": f'./trainer/training_epoch{epoch}/batch{batch_id}',
             "evaluation_strategy": "epoch",
             "generation_max_length": 512,
             "per_device_train_batch_size": 1,
@@ -217,8 +218,9 @@ class Model():
         assert len(preds) == len(labels)
         for i in range(len(preds)):
             # if self.is_predction:
-            #     print(preds[i] )
-            #     print(labels[i])
+            print(preds[i] )
+            # print(labels[i])
+            print()
             accur_count += 1 if preds[i] == labels[i]  else 0
         
         return accur_count / sample_size * 100
@@ -229,6 +231,7 @@ class Model():
         labels = eval_pred.label_ids
         
         predictions = np.argmax(eval_pred.predictions[0], axis=-1)
+
         
         decoded_preds = self.tokenizer.batch_decode(predictions, skip_special_tokens=True)
         decoded_labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
@@ -285,13 +288,15 @@ class Model():
 
         config = {
             "output_dir": "./trainer/training",
-            "evaluation_strategy": "steps",
+            "evaluation_strategy": "epoch",
             "generation_max_length": 512,
             "per_device_train_batch_size": 1,
             "per_device_eval_batch_size": 1,
             "save_strategy": 'no',
-            'num_train_epochs': 1
+            'num_train_epochs': 1,
+            'log_level': 'info',
         }
+        
         training_args = Seq2SeqTrainingArguments(**config)
 
 
@@ -305,22 +310,32 @@ class Model():
         
         batch_id = 0
         total_acc = 0
+        print('Num of Dataset:', len(self.test_dataset))
+
+        # pred = trainer.predict(self.test_dataset)
+        # acc = self.compute_metrics(pred)['acc']
         portions = self.get_portions(batch_num, len(self.test_dataset))
         #        batch_num *= 2
         while batch_id != batch_num:
             test_start, test_end = portions[batch_id]
+            print(test_start, test_end)
             test_dataset = torch.utils.data.Subset(self.test_dataset, list(range(test_start, test_end, 1)))
             test_pred = trainer.predict(test_dataset)
-            total_acc += self.compute_metrics(test_pred)['Acc']
+            total_acc += self.compute_metrics(test_pred)['acc']
             print(total_acc)
             batch_id += 1
 
         acc = total_acc / batch_num
         print("Accuracy: ", acc)        
-    
+        # print("Accuracy: ", total_acc)        
+
 
 if __name__ == "__main__":
-    model = Model("Modit-G-improve-test", pretrained_model_path=None)
-    model.batch_run("./data/tiny", 10)
+    model = Model("Modit-G-improved-Small", pretrained_model_path='model/Modit-G-improved_epoch_9_finetuned.pt')
+    # model = Model("Modit-G-improved-Small", pretrained_model_path=None)
+
+    # model = Model("Modit-G-improved-Medium", pretrained_model_path='lr-cp')
+    # model.batch_run("./data/small", 750)
     #model.run("./data/small")
-    # model.evaluate_pretrained_output('./data/medium', 1000)
+    # model.evaluate_pretrained_output('./data/medium', 600)
+    model.evaluate_pretrained_output('./data/small', 500)
