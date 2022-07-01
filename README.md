@@ -1,5 +1,4 @@
-# Knowledge Representation for Code Patch
+# Graph Representations in Multi Modal Input for Code Patching
 
 COMS 6998-AI4SE Final Project<br>
-xs2413, jed2205, mwc2147
-
+Paper availble [here](https://github.com/mwcheng21/knowledge-representation/blob/main/KnowledgeRepresentation.pdf)
